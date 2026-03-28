@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow, noarchive"/>
+<title>Admin — FapItUp</title>
+<style>
+  :root {
+    --pink:#ff2d78;--pink-light:#ff6fa8;--pink-glow:#ff2d7844;
+    --bg:#0a0a0f;--bg2:#111118;--bg3:#18181f;
+    --border:#2a2a38;--text:#f0e8f0;--muted:#7a7a9a;
+    --grad:linear-gradient(135deg,#ff2d78,#c4005a,#7a00c4);
+    --green:#4caf50;--red:#f44336;--orange:#ff9800;--blue:#64b5f6;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;}
+  button{cursor:pointer;border:none;outline:none;font-family:inherit;}
+  input,select,textarea{font-family:inherit;outline:none;}
+  a{color:var(--pink-light);text-decoration:none;}
+  ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg2);}::-webkit-scrollbar-thumb{background:#333;border-radius:3px;}
+
+  /* LOGIN */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+  .login-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:44px 36px;width:100%;max-width:380px;text-align:center;}
+  .login-logo{font-size:1.6rem;font-weight:700;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+  .login-sub{color:var(--muted);font-size:.84rem;margin-bottom:30px;}
+  .login-field{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-size:.9rem;margin-bottom:12px;transition:border-color .2s;}
+  .login-field:focus{border-color:var(--pink);}
+  .login-btn{width:100%;padding:12px;border-radius:8px;background:var(--grad);color:#fff;font-size:.95rem;font-weight:600;margin-top:4px;}
+  .login-err{color:var(--red);font-size:.8rem;margin-top:10px;display:none;}
+
+  /* LAYOUT */
+  .admin-wrap{display:none;}
+  .admin-wrap.show{display:flex;flex-direction:column;min-height:100vh;}
+
+  /* HEADER */
+  header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;flex-shrink:0;}
+  .h-left{display:flex;align-items:center;gap:12px;}
+  .h-logo{font-size:1.2rem;font-weight:700;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .h-badge{font-size:.7rem;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:2px 7px;color:var(--muted);}
+  .h-right{display:flex;gap:10px;align-items:center;}
+  .h-link{font-size:.8rem;color:var(--muted);padding:5px 10px;border:1px solid var(--border);border-radius:6px;transition:all .2s;}
+  .h-link:hover{border-color:var(--pink);color:var(--pink);}
+
+  /* TABS */
+  .tabs{display:flex;gap:2px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
+  .tab{padding:12px 18px;font-size:.85rem;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer;}
+  .tab.active{color:var(--text);border-bottom-color:var(--pink);}
+  .tab:hover:not(.active){color:var(--text);}
+  .tab-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--red);color:#fff;font-size:.62rem;font-weight:700;width:16px;height:16px;border-radius:50%;margin-left:5px;}
+
+  /* MAIN */
+  main{padding:24px;flex:1;overflow-y:auto;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  /* STAT CARDS */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+  .stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+  .stat .lbl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+  .stat .val{font-size:1.7rem;font-weight:700;}
+  .stat .sub{font-size:.72rem;color:var(--muted);margin-top:3px;}
+  .pink{color:var(--pink-light);}.green{color:var(--green);}.orange{color:var(--orange);}.red{color:var(--red);}.blue{color:var(--blue);}
+
+  /* CHART */
+  .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:24px;}
+  .chart-title{font-size:.88rem;font-weight:600;margin-bottom:14px;color:var(--muted);}
+  .bar-chart{display:flex;align-items:flex-end;gap:6px;height:80px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .bar{width:100%;background:var(--pink);border-radius:3px 3px 0 0;min-height:2px;transition:height .3s;}
+  .bar-label{font-size:.6rem;color:var(--muted);}
+  .bar-val{font-size:.65rem;color:var(--pink-light);}
+
+  /* TOP VIDEOS */
+  .top-videos{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:24px;}
+  .top-videos h3{font-size:.88rem;font-weight:600;color:var(--muted);margin-bottom:14px;}
+  .top-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(42,42,56,.4);}
+  .top-row:last-child{border-bottom:none;}
+  .top-rank{font-size:.8rem;color:var(--muted);width:20px;flex-shrink:0;text-align:right;}
+  .top-title{flex:1;font-size:.82rem;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .top-plays{font-size:.78rem;color:var(--pink-light);font-weight:600;flex-shrink:0;}
+
+  /* TABLE */
+  .tbl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+  .tbl-header h2{font-size:.95rem;font-weight:600;}
+  .filter-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .fbtn{padding:5px 12px;border-radius:6px;font-size:.78rem;background:var(--bg3);border:1px solid var(--border);color:var(--muted);transition:all .2s;}
+  .fbtn.active,.fbtn:hover{border-color:var(--pink);color:var(--pink);}
+  .srch{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 11px;color:var(--text);font-size:.82rem;width:220px;transition:border-color .2s;}
+  .srch:focus{border-color:var(--pink);}
+
+  .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg3);}
+  td{padding:11px 12px;border-bottom:1px solid rgba(42,42,56,.4);font-size:.82rem;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,.015);}
+
+  .badge{display:inline-block;padding:2px 7px;border-radius:5px;font-size:.68rem;font-weight:600;}
+  .badge.live{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3);}
+  .badge.archived{background:rgba(100,100,150,.15);color:var(--muted);border:1px solid var(--border);}
+  .badge.pending{background:rgba(255,152,0,.15);color:var(--orange);border:1px solid rgba(255,152,0,.3);}
+  .badge.reviewed{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3);}
+
+  .act{padding:4px 9px;border-radius:5px;font-size:.72rem;font-weight:500;border:1px solid var(--border);color:var(--muted);transition:all .15s;margin-right:3px;}
+  .act:hover.arch{color:var(--orange);border-color:var(--orange);}
+  .act:hover.del{color:var(--red);border-color:var(--red);}
+  .act:hover.rst{color:var(--green);border-color:var(--green);}
+  .act:hover.rev{color:var(--blue);border-color:var(--blue);}
+  .act.arch:hover{color:var(--orange);border-color:var(--orange);}
+  .act.del:hover{color:var(--red);border-color:var(--red);}
+  .act.rst:hover{color:var(--green);border-color:var(--green);}
+  .act.rev:hover{color:var(--blue);border-color:var(--blue);}
+
+  .trunc{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sub-text{font-size:.72rem;color:var(--muted);margin-top:2px;}
+  .empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:.88rem;}
+
+  /* PAGINATION */
+  .pagi{display:flex;justify-content:center;gap:6px;margin-top:18px;flex-wrap:wrap;}
+  .pagi button{padding:5px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:.8rem;transition:all .2s;}
+  .pagi button.active{background:var(--pink);border-color:var(--pink);color:#fff;}
+
+  /* CONFIRM */
+  .overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;}
+  .overlay.open{display:flex;}
+  .confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:420px;width:100%;}
+  .confirm-box h3{margin-bottom:8px;font-size:.98rem;}
+  .confirm-box p{color:var(--muted);font-size:.83rem;line-height:1.6;margin-bottom:22px;}
+  .confirm-acts{display:flex;gap:10px;justify-content:flex-end;}
+  .btn-no{padding:8px 16px;border-radius:7px;border:1px solid var(--border);color:var(--muted);font-size:.83rem;transition:all .2s;}
+  .btn-no:hover{border-color:var(--text);color:var(--text);}
+  .btn-yes{padding:8px 18px;border-radius:7px;font-size:.83rem;font-weight:600;color:#fff;border:none;}
+  .btn-yes.danger{background:var(--red);}
+  .btn-yes.warn{background:var(--orange);}
+  .btn-yes.ok{background:var(--green);}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:20px;right:20px;z-index:500;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:.83rem;transform:translateY(70px);transition:transform .25s;pointer-events:none;}
+  .toast.show{transform:translateY(0);}
+  .toast.ok{border-color:var(--green);color:var(--green);}
+  .toast.err{border-color:var(--red);color:var(--red);}
+
+  @media(max-width:700px){
+    main{padding:12px;}
+    .tabs{padding:0 12px;overflow-x:auto;}
+    .srch{width:100%;}
+    .stats-grid{grid-template-columns:repeat(2,1fr);}
+    th:nth-child(3),td:nth-child(3),th:nth-child(4),td:nth-child(4){display:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div class="login-logo">FapItUp</div>
+    <div class="login-sub">Admin Panel — Authorized Access Only</div>
+    <input class="login-field" type="text" id="lu" placeholder="Username" autocomplete="username"/>
+    <input class="login-field" type="password" id="lp" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">Login</button>
+    <div class="login-err" id="loginErr">Invalid credentials.</div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="admin-wrap" id="adminWrap">
+  <header>
+    <div class="h-left">
+      <div class="h-logo">FapItUp Admin</div>
+      <div class="h-badge">Staff Only</div>
+    </div>
+    <div class="h-right">
+      <a class="h-link" href="/" target="_blank">← View Site</a>
+      <button class="h-link" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-dash" onclick="switchTab('dash')">Dashboard</button>
+    <button class="tab" id="tab-requests" onclick="switchTab('requests')">Removal Requests <span class="tab-badge" id="pendingBadge">0</span></button>
+    <button class="tab" id="tab-videos" onclick="switchTab('videos')">Videos</button>
+  </div>
+
+  <main>
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dash">
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat"><div class="lbl">Loading…</div><div class="val">—</div></div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Plays — Last 7 Days</div>
+        <div class="bar-chart" id="barChart"></div>
+      </div>
+      <div class="top-videos">
+        <h3>🔥 Top 10 Most Played Videos</h3>
+        <div id="topVideosList"></div>
+      </div>
+    </div>
+
+    <!-- REQUESTS -->
+    <div class="panel" id="panel-requests">
+      <div class="tbl-header">
+        <h2>Removal Requests</h2>
+        <div class="filter-row">
+          <button class="fbtn active" onclick="filterReq('all',this)">All</button>
+          <button class="fbtn" onclick="filterReq('pending',this)">Pending</button>
+          <button class="fbtn" onclick="filterReq('reviewed',this)">Reviewed</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Video</th><th>Requester</th><th>Reason</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="reqBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="reqEmpty" style="display:none">No requests found</div>
+    </div>
+
+    <!-- VIDEOS -->
+    <div class="panel" id="panel-videos">
+      <div class="tbl-header">
+        <h2>All Videos</h2>
+        <div class="filter-row">
+          <button class="fbtn active" onclick="filterVid('all',this)">All</button>
+          <button class="fbtn" onclick="filterVid('live',this)">Live</button>
+          <button class="fbtn" onclick="filterVid('archived',this)">Archived</button>
+        </div>
+        <input class="srch" type="text" placeholder="Search videos…" oninput="searchVid(this.value)"/>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Duration</th><th>Plays</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="vidBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="vidEmpty" style="display:none">No videos found</div>
+      <div class="pagi" id="vidPagi"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- CONFIRM -->
+<div class="overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3 id="cTitle"></h3>
+    <p id="cMsg"></p>
+    <div class="confirm-acts">
+      <button class="btn-no" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-yes" id="cBtn" onclick="runConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "/api/admin";
+let allRequests=[], reqFilter="all";
+let vidFilter="all", vidPage=1, vidSearch="", vidTimer=null;
+let confirmCb=null;
+
+// ── AUTH ──────────────────────────────────────────────────────
+async function doLogin(){
+  const u=document.getElementById("lu").value.trim();
+  const p=document.getElementById("lp").value;
+  const res=await fetch(`${API}/login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:u,password:p})});
+  const data=await res.json();
+  if(data.success){
+    document.getElementById("loginWrap").style.display="none";
+    document.getElementById("adminWrap").classList.add("show");
+    loadAll();
+  } else {
+    document.getElementById("loginErr").style.display="block";
+    document.getElementById("lp").value="";
+  }
+}
+async function doLogout(){
+  await fetch(`${API}/logout`,{method:"POST"});
+  location.reload();
+}
+async function checkAuth(){
+  const res=await fetch(`${API}/check`);
+  const d=await res.json();
+  if(d.authenticated){
+    document.getElementById("loginWrap").style.display="none";
+    document.getElementById("adminWrap").classList.add("show");
+    loadAll();
+  }
+}
+checkAuth();
+
+// ── TABS ──────────────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.add("active");
+  document.getElementById("panel-"+name).classList.add("active");
+  if(name==="videos") loadVideos();
+  if(name==="requests") loadRequests();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg,type="ok"){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className=`toast show ${type}`;
+  setTimeout(()=>t.classList.remove("show"),3000);
+}
+
+// ── CONFIRM ───────────────────────────────────────────────────
+function showConfirm(title,msg,btnClass,btnText,cb){
+  document.getElementById("cTitle").textContent=title;
+  document.getElementById("cMsg").textContent=msg;
+  const b=document.getElementById("cBtn"); b.textContent=btnText; b.className=`btn-yes ${btnClass}`;
+  confirmCb=cb; document.getElementById("confirmOverlay").classList.add("open");
+}
+function closeConfirm(){document.getElementById("confirmOverlay").classList.remove("open");confirmCb=null;}
+function runConfirm(){if(confirmCb)confirmCb();closeConfirm();}
+
+// ── LOAD ALL ──────────────────────────────────────────────────
+async function loadAll(){ await loadStats(); await loadRequests(); }
+
+// ── STATS + DASHBOARD ─────────────────────────────────────────
+async function loadStats(){
+  const res=await fetch(`${API}/stats`);
+  const d=await res.json();
+
+  // Stat cards
+  document.getElementById("statsGrid").innerHTML=`
+    <div class="stat"><div class="lbl">Total Videos</div><div class="val">${d.total_videos}</div></div>
+    <div class="stat"><div class="lbl">Archived</div><div class="val red">${d.archived_videos}</div></div>
+    <div class="stat"><div class="lbl">Total Plays</div><div class="val pink">${d.total_plays.toLocaleString()}</div></div>
+    <div class="stat"><div class="lbl">Today Plays</div><div class="val green">${d.today_plays}</div><div class="sub">${d.today_views} page views today</div></div>
+    <div class="stat"><div class="lbl">This Week</div><div class="val blue">${d.week_plays}</div><div class="sub">plays in 7 days</div></div>
+    <div class="stat"><div class="lbl">Removal Requests</div><div class="val orange">${d.pending_requests} pending</div><div class="sub">${d.total_requests} total</div></div>`;
+
+  // Badge
+  document.getElementById("pendingBadge").textContent=d.pending_requests;
+
+  // Bar chart — last 7 days
+  const daily=d.daily_plays||[];
+  const maxVal=Math.max(...daily.map(r=>r.count),1);
+  const chart=document.getElementById("barChart");
+  // Fill missing days
+  const days=[];
+  for(let i=6;i>=0;i--){
+    const dt=new Date(); dt.setDate(dt.getDate()-i);
+    const key=dt.toISOString().slice(0,10);
+    const found=daily.find(r=>r.day===key);
+    days.push({day:key.slice(5),count:found?found.count:0});
+  }
+  chart.innerHTML=days.map(d=>`
+    <div class="bar-col">
+      <div class="bar-val">${d.count||""}</div>
+      <div class="bar" style="height:${Math.max(4,(d.count/maxVal)*70)}px"></div>
+      <div class="bar-label">${d.day}</div>
+    </div>`).join("");
+
+  // Top videos
+  const top=document.getElementById("topVideosList");
+  if(!d.top_videos||!d.top_videos.length){ top.innerHTML=`<div class="empty">No play data yet</div>`; return; }
+  top.innerHTML=d.top_videos.map((v,i)=>`
+    <div class="top-row">
+      <div class="top-rank">${i+1}</div>
+      <div class="top-title">
+        <a href="/watch/${v.slug}" target="_blank">${v.title}</a>
+        <div class="sub-text">${v.duration||""}  •  ${v.site_views||0} site views</div>
+      </div>
+      <div class="top-plays">▶ ${v.play_count}</div>
+    </div>`).join("");
+}
+
+// ── REQUESTS ──────────────────────────────────────────────────
+async function loadRequests(){
+  const res=await fetch(`${API}/requests`);
+  allRequests=await res.json();
+  renderRequests();
+}
+function filterReq(f,btn){
+  reqFilter=f;
+  document.querySelectorAll("#panel-requests .fbtn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active"); renderRequests();
+}
+function renderRequests(){
+  const filtered=reqFilter==="all"?allRequests:allRequests.filter(r=>r.status===reqFilter);
+  const tbody=document.getElementById("reqBody");
+  const empty=document.getElementById("reqEmpty");
+  if(!filtered.length){tbody.innerHTML="";empty.style.display="block";return;}
+  empty.style.display="none";
+  tbody.innerHTML=filtered.map(r=>`
+    <tr>
+      <td style="color:var(--muted);font-size:.72rem">#${r.id}</td>
+      <td><div class="trunc" title="${esc(r.video_title)}">${esc(r.video_title)||"Unknown"}</div>
+          ${r.video_slug?`<div class="sub-text"><a href="/watch/${r.video_slug}" target="_blank">view ↗</a></div>`:""}</td>
+      <td><div>${esc(r.name)||"Anon"}</div><div class="sub-text">${esc(r.email)}</div></td>
+      <td><div style="max-width:220px;font-size:.76rem;color:var(--muted);line-height:1.5">${esc(r.reason)}</div></td>
+      <td style="font-size:.74rem;color:var(--muted);white-space:nowrap">${(r.submitted_at||"").slice(0,10)}</td>
+      <td><span class="badge ${r.status||'pending'}">${r.status||"pending"}</span></td>
+      <td>
+        ${r.status==="pending"?`<button class="act rev" onclick="markReviewed(${r.id})">Reviewed</button>`:""}
+        ${r.video_id?`
+          <button class="act arch" onclick="archFromReq(${r.id},${r.video_id},'${esc(r.video_title)}')">Archive</button>
+          <button class="act del" onclick="delFromReq(${r.id},${r.video_id},'${esc(r.video_title)}')">Delete</button>`:""}</td>
+    </tr>`).join("");
+}
+
+async function markReviewed(id){
+  const res=await fetch(`${API}/requests/${id}/review`,{method:"POST"});
+  const d=await res.json();
+  if(d.success){toast("Marked as reviewed");loadRequests();}else toast("Failed","err");
+}
+function archFromReq(rid,vid,title){
+  showConfirm("Archive Video",`Hide "${title}" from the site? You can restore it later.`,"warn","Archive",async()=>{
+    await fetch(`${API}/requests/${rid}/review`,{method:"POST"});
+    const r=await fetch(`${API}/videos/${vid}/archive`,{method:"POST"});
+    const d=await r.json();
+    if(d.success){toast("Video archived");loadRequests();loadStats();}else toast("Failed","err");
+  });
+}
+function delFromReq(rid,vid,title){
+  showConfirm("Permanently Delete",`Delete "${title}" forever? This cannot be undone.`,"danger","Delete Forever",async()=>{
+    await fetch(`${API}/requests/${rid}/review`,{method:"POST"});
+    const r=await fetch(`${API}/videos/${vid}`,{method:"DELETE"});
+    const d=await r.json();
+    if(d.success){toast("Video deleted");loadRequests();loadStats();}else toast("Failed","err");
+  });
+}
+
+// ── VIDEOS ────────────────────────────────────────────────────
+async function loadVideos(page=1){
+  vidPage=page;
+  let url=`${API}/videos?page=${page}&limit=30`;
+  if(vidSearch) url+=`&q=${encodeURIComponent(vidSearch)}`;
+  if(vidFilter!=="all") url+=`&status=${vidFilter}`;
+  const res=await fetch(url);
+  const data=await res.json();
+  renderVideos(data);
+}
+function filterVid(f,btn){
+  vidFilter=f;vidPage=1;
+  document.querySelectorAll("#panel-videos .fbtn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");loadVideos();
+}
+function searchVid(q){
+  vidSearch=q;clearTimeout(vidTimer);
+  vidTimer=setTimeout(()=>loadVideos(1),350);
+}
+function renderVideos(data){
+  const tbody=document.getElementById("vidBody");
+  const empty=document.getElementById("vidEmpty");
+  const pagi=document.getElementById("vidPagi");
+  if(!data.videos||!data.videos.length){tbody.innerHTML="";empty.style.display="block";pagi.innerHTML="";return;}
+  empty.style.display="none";
+  tbody.innerHTML=data.videos.map(v=>`
+    <tr>
+      <td style="color:var(--muted);font-size:.72rem">${v.id}</td>
+      <td><div style="font-weight:500;max-width:320px;line-height:1.4">${esc(v.title)}</div>
+          ${v.slug?`<div class="sub-text"><a href="/watch/${v.slug}" target="_blank">/watch/${v.slug} ↗</a></div>`:""}</td>
+      <td style="color:var(--muted);font-size:.78rem">${v.duration||"—"}</td>
+      <td style="color:var(--pink-light);font-weight:600">▶ ${v.play_count||0}</td>
+      <td><span class="badge ${v.archived?'archived':'live'}">${v.archived?"Archived":"Live"}</span></td>
+      <td>
+        ${v.archived
+          ?`<button class="act rst" onclick="restoreVid(${v.id},'${esc(v.title)}')">Restore</button>`
+          :`<button class="act arch" onclick="archiveVid(${v.id},'${esc(v.title)}')">Archive</button>`}
+        <button class="act del" onclick="deleteVid(${v.id},'${esc(v.title)}')">Delete</button>
+      </td>
+    </tr>`).join("");
+
+  if(data.pages>1){
+    pagi.innerHTML=Array.from({length:data.pages},(_,i)=>i+1).map(p=>
+      `<button class="${p===vidPage?'active':''}" onclick="loadVideos(${p})">${p}</button>`
+    ).join("");
+  } else pagi.innerHTML="";
+}
+
+async function archiveVid(id,title){
+  showConfirm("Archive Video",`Hide "${title}" from the site?`,"warn","Archive",async()=>{
+    const r=await fetch(`${API}/videos/${id}/archive`,{method:"POST"});
+    const d=await r.json();
+    if(d.success){toast("Archived");loadVideos(vidPage);loadStats();}else toast("Failed","err");
+  });
+}
+async function restoreVid(id,title){
+  showConfirm("Restore Video",`Restore "${title}" to the live site?`,"ok","Restore",async()=>{
+    const r=await fetch(`${API}/videos/${id}/restore`,{method:"POST"});
+    const d=await r.json();
+    if(d.success){toast("Restored");loadVideos(vidPage);loadStats();}else toast("Failed","err");
+  });
+}
+async function deleteVid(id,title){
+  showConfirm("Permanently Delete",`Delete "${title}" forever? Cannot be undone.`,"danger","Delete Forever",async()=>{
+    const r=await fetch(`${API}/videos/${id}`,{method:"DELETE"});
+    const d=await r.json();
+    if(d.success){toast("Deleted");loadVideos(vidPage);loadStats();}else toast("Failed","err");
+  });
+}
+
+function esc(s){ return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+</script>
+</body>
+</html>
