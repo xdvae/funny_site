@@ -165,10 +165,15 @@ def log_event(video_id, event):
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def index(path):
-    # Don't catch API / proxy / admin / sitemap / robots
-    if path.startswith(("api/", "proxy", "sitemap", "robots", "alfa-gama-beta")):
+    if path.startswith(("api/", "proxy", "sitemap", "robots", "alfa-gama-beta", "favicon")):
         from flask import abort; abort(404)
     return send_from_directory(".", "index.html")
+
+
+# ── Favicon — served directly from assets folder ──────────────────────────────
+@app.route("/favicon")
+def favicon():
+    return send_from_directory("assets", "logo.png", mimetype="image/png")
 
 
 @app.route("/sitemap.xml")
