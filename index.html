@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 
 <!-- ═══ SEO META ═══ -->
-<title id="pageTitle">Desi MMS Viral Leaked Sex Videos Watch Online Free | FapItUp</title>
-<meta name="description" id="pageDesc" content="Watch the latest desi Indian viral MMS leaked sex videos online free. Hindi bhabhi chudai, GF BF sex, nepali, Tamil, Telugu, Bengali adult videos. New videos daily – FapItUp.com"/>
+<title id="pageTitle">Desi MMS Viral Leaked Sex Videos Watch Online Free — Latest Indian Adult MMS</title>
+<meta name="description" id="pageDesc" content="Watch the latest desi Indian viral MMS leaked sex videos online free. Hindi bhabhi chudai, GF BF sex, nepali, Tamil, Telugu, Bengali adult videos. New videos daily."/>
 <meta name="keywords" content="desi mms, indian sex video, hindi mms, viral mms leak, bhabhi sex, desi chudai, indian porn, xhamster india, xvideos desi, xnxx indian, desi bf video, girlfriend sex mms, leaked mms, viral sex video, nepali sex video, bengali sex mms, tamil sex video, telugu sex video, hot bhabhi, desi adult, free indian porn, hindi sex video"/>
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1"/>
 <meta name="theme-color" content="#ff2d78"/>
@@ -21,7 +21,7 @@
 <!-- Open Graph -->
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="FapItUp"/>
-<meta property="og:title" id="ogTitle" content="Desi MMS Viral Leaked Sex Videos Watch Online Free | FapItUp"/>
+<meta property="og:title" id="ogTitle" content="Desi MMS Viral Leaked Sex Videos Watch Online Free"/>
 <meta property="og:description" id="ogDesc" content="Watch the latest desi Indian viral MMS leaked sex videos free. New videos daily."/>
 <meta property="og:url" content="https://fapitup.com/"/>
 <meta property="og:image" content="https://fapitup.com/favicon"/>
@@ -262,7 +262,14 @@
     .volume-wrap{display:none;}
   }
 
-  /* SEO hidden content for Google */
+  /* LOAD MORE BUTTON */
+  .load-more-wrap{display:flex;justify-content:center;margin-top:20px;}
+  .load-more-btn{padding:10px 32px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:.88rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px;}
+  .load-more-btn:hover{border-color:var(--pink);color:var(--pink);}
+  .load-more-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .load-more-btn .spin-sm{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:var(--pink);animation:spin .6s linear infinite;display:none;}
+  .load-more-btn.loading .spin-sm{display:block;}
+  .load-more-btn.loading .btn-txt{display:none;}
   .seo-footer{padding:40px 20px;max-width:1000px;margin:0 auto;color:var(--muted);font-size:.82rem;line-height:1.8;border-top:1px solid var(--border);}
   .seo-footer h2{font-size:1rem;color:var(--text);margin-bottom:10px;}
   .seo-footer p{margin-bottom:12px;}
@@ -372,6 +379,12 @@
     <div class="related-section" id="relatedSection" style="display:none">
       <div class="related-title">MORE VIDEOS</div>
       <div class="related-grid" id="relatedGrid"></div>
+      <div class="load-more-wrap">
+        <button class="load-more-btn" id="relatedLoadMore" onclick="loadMoreRelated()">
+          <div class="spin-sm"></div>
+          <span class="btn-txt">Load More Videos</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -485,7 +498,7 @@ function updateSearchSEO(q){
 }
 
 function resetSEO(){
-  document.getElementById("pageTitle").textContent="Desi MMS Viral Leaked Sex Videos Watch Online Free | FapItUp";
+  document.getElementById("pageTitle").textContent="Desi MMS Viral Leaked Sex Videos Watch Online Free — Latest Indian Adult MMS";
   document.getElementById("pageDesc").content="Watch the latest desi Indian viral MMS leaked sex videos online free.";
   searchDesc.classList.remove("show");
   document.getElementById("canonicalLink").href="https://fapitup.com/";
@@ -515,7 +528,7 @@ async function loadVideos(page=1,q=""){
   totalPages=data.pages||1;
 
   if(q){
-    sectionTitle.textContent=`"${q.toUpperCase()}" — ${data.total} VIDEOS`;
+    sectionTitle.textContent=`"${q.toUpperCase()}" VIDEOS`;
     updateSearchSEO(q);
   } else {
     sectionTitle.textContent="LATEST VIDEOS";
@@ -523,7 +536,31 @@ async function loadVideos(page=1,q=""){
   }
 
   if(!data.videos.length){
-    grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg><p>No videos found</p></div>`;
+    // No results — show random videos instead of empty state
+    sectionTitle.textContent=`MORE VIDEOS`;
+    const fallback=await fetch(`${API}/videos?limit=${PER_PAGE}&page=${Math.floor(Math.random()*10)+1}`);
+    const fb=await fallback.json();
+    if(fb.videos&&fb.videos.length){
+      grid.innerHTML=fb.videos.map(v=>`
+        <div class="card" data-id="${v.id}" data-slug="${v.slug||''}">
+          <div class="card-thumb">
+            <img src="${v.thumbnail||''}" alt="${v.title}" loading="lazy" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 9%22%3E%3Crect fill=%22%2318181f%22 width=%2216%22 height=%229%22/%3E%3C/svg%3E'"/>
+            <div class="card-duration">${v.duration||""}</div>
+            <div class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+          <div class="card-info">
+            <div class="card-title">${v.title}</div>
+            <div class="card-meta"><span>👁 ${v.views||"—"}</span><span class="rating">👍 ${v.rating||"—"}</span></div>
+          </div>
+        </div>`).join("");
+      grid.querySelectorAll(".card").forEach(card=>{
+        card.addEventListener("click",()=>{
+          const slug=card.dataset.slug;
+          if(slug) window.history.pushState({},``,`/watch/${slug}`);
+          openModal(Number(card.dataset.id));
+        });
+      });
+    }
     return;
   }
   grid.innerHTML=data.videos.map(v=>`
@@ -608,28 +645,65 @@ async function openModal(id){
   loadRelated(data.id, data.title);
 }
 
+let relatedKeyword="", relatedPage=1, relatedHasMore=true, relatedLoading=false;
+
 async function loadRelated(currentId, title){
-  // Pick first keyword from title for related search
-  const words=title.split(" ").filter(w=>w.length>3);
-  const keyword=words[Math.floor(Math.random()*Math.min(words.length,4))];
-  try{
-    const res=await fetch(`${API}/videos?limit=8&q=${encodeURIComponent(keyword)}`);
-    const data=await res.json();
-    const others=data.videos.filter(v=>v.id!==currentId).slice(0,8);
-    if(!others.length){
-      // fallback: random latest
-      const r2=await fetch(`${API}/videos?limit=8&page=${Math.floor(Math.random()*10)+1}`);
-      const d2=await r2.json();
-      renderRelated(d2.videos.filter(v=>v.id!==currentId).slice(0,8));
-    } else {
-      renderRelated(others);
-    }
-  }catch(e){}
+  relatedPage=1; relatedHasMore=true;
+  relatedGrid.innerHTML="";
+  relatedSection.style.display="none";
+
+  // Pick a keyword from the title
+  const stopWords=new Set(["mein","ne","ko","ki","ka","ke","se","aur","par","hai","tha","wali","wala","nahi","aap","hum"]);
+  const words=title.split(/\s+/).filter(w=>w.length>3&&!stopWords.has(w.toLowerCase()));
+  relatedKeyword=words[Math.floor(Math.random()*Math.min(words.length,5))]||"";
+
+  await fetchRelatedPage(currentId, true);
 }
 
-function renderRelated(videos){
-  if(!videos||!videos.length)return;
-  relatedGrid.innerHTML=videos.map(v=>`
+async function fetchRelatedPage(excludeId, isFirst=false){
+  if(relatedLoading||!relatedHasMore) return;
+  relatedLoading=true;
+
+  const btn=document.getElementById("relatedLoadMore");
+  if(btn){btn.classList.add("loading");btn.disabled=true;}
+
+  try{
+    let videos=[];
+
+    // Try keyword search first
+    if(relatedKeyword){
+      const res=await fetch(`${API}/videos?limit=8&page=${relatedPage}&q=${encodeURIComponent(relatedKeyword)}`);
+      const data=await res.json();
+      videos=(data.videos||[]).filter(v=>v.id!==excludeId);
+      if(data.page>=data.pages) relatedHasMore=false;
+    }
+
+    // If keyword gave nothing or empty, fall back to random page of latest
+    if(!videos.length){
+      const fallbackPage=relatedPage+Math.floor(Math.random()*5)+1;
+      const res=await fetch(`${API}/videos?limit=8&page=${fallbackPage}`);
+      const data=await res.json();
+      videos=(data.videos||[]).filter(v=>v.id!==excludeId);
+      if(!videos.length) relatedHasMore=false;
+    }
+
+    if(videos.length){
+      appendRelated(videos);
+      relatedPage++;
+      relatedSection.style.display="block";
+    }
+  }catch(e){console.warn("Related load error",e);}
+
+  relatedLoading=false;
+  if(btn){
+    btn.classList.remove("loading");
+    btn.disabled=false;
+    btn.style.display=relatedHasMore?"flex":"none";
+  }
+}
+
+function appendRelated(videos){
+  relatedGrid.insertAdjacentHTML("beforeend", videos.map(v=>`
     <div class="related-card" onclick="openRelated(${v.id},'${(v.slug||'').replace(/'/g,"\\'")}')">
       <div class="related-thumb">
         <img src="${v.thumbnail||''}" alt="${v.title}" loading="lazy" onerror="this.style.display='none'"/>
@@ -638,15 +712,20 @@ function renderRelated(videos){
       <div class="related-info">
         <div class="related-info-title">${v.title}</div>
       </div>
-    </div>`).join("");
-  relatedSection.style.display="block";
+    </div>`).join(""));
+}
+
+function loadMoreRelated(){
+  if(currentVideo) fetchRelatedPage(currentVideo.id);
 }
 
 function openRelated(id,slug){
   if(slug)window.history.pushState({},``,`/watch/${slug}`);
   videoEl.pause();videoEl.src="";
+  // Reset related state for new video
+  relatedPage=1;relatedHasMore=true;relatedLoading=false;
+  relatedGrid.innerHTML="";
   openModal(id);
-  // Scroll to top of modal
   modalOverlay.scrollTo({top:0,behavior:'smooth'});
 }
 
