@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#ff2d78"/>
 <meta name="author" content="FapItUp"/>
 <!-- Canonical only set on homepage — SSR pages have their own canonical in the response -->
-<!-- <link rel="canonical" href="https://fapitup.online/"/> -->
+<link rel="canonical" href="https://fapitup.online/"/>
 
 <!-- Favicon — served via Flask so it works -->
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo.png"/>
@@ -246,32 +246,43 @@
 
   /* MOBILE */
   @media(max-width:700px){
-    header{padding:0 12px;}
-    .logo{font-size:1.5rem;}
-    main{padding:16px 10px 50px;}
+    header{padding:0 10px;gap:8px;height:56px;}
+    .logo{font-size:1.3rem;gap:6px;}
+    .logo-img{height:30px;}
+    /* Search takes remaining space, categories button stays compact */
+    .search-wrap{flex:1;min-width:0;padding:0 10px;}
+    .tags-btn{padding:6px 10px;font-size:.76rem;flex-shrink:0;white-space:nowrap;}
+    .tags-btn svg{display:none;} /* hide icon on very small screens, show text only */
+    main{padding:14px 10px 50px;}
     .grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .section-title{font-size:1.1rem;margin-bottom:12px;}
     .modal-overlay{padding:0;align-items:flex-end;}
     .modal{max-width:100%;border-radius:14px 14px 0 0;}
     .volume-slider{width:48px;}
-    .quality-select{display:inline-block!important;} /* keep quality on mobile */
-    .player-inner.playing .controls{opacity:1;} /* always show on mobile */
+    .quality-select{display:inline-block!important;}
+    .player-inner.playing .controls{opacity:1;}
     .btn-remove{margin-left:0;}
     .related-grid{grid-template-columns:repeat(2,1fr);}
+    /* Tags drawer full width on mobile */
+    .tags-drawer{width:100%;border-left:none;border-top:1px solid var(--border);top:auto;border-radius:16px 16px 0 0;}
+    .tags-drawer-overlay{background:rgba(0,0,0,.7);}
   }
   @media(max-width:400px){
+    .logo-txt{display:none;} /* hide text, show logo only on tiny screens */
     .grid{grid-template-columns:repeat(2,1fr);gap:8px;}
     .volume-wrap{display:none;}
+    .tags-btn{padding:6px 8px;}
   }
 
   /* TAGS DRAWER */
-  .tags-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:.82rem;color:var(--text);display:flex;align-items:center;gap:7px;transition:all .2s;flex-shrink:0;}
+  .tags-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:.82rem;color:var(--text);display:flex;align-items:center;gap:7px;transition:all .2s;flex-shrink:0;white-space:nowrap;}
   .tags-btn:hover{border-color:var(--pink);color:var(--pink);}
   .tags-drawer{position:fixed;top:0;right:0;bottom:0;z-index:150;width:280px;background:var(--bg2);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .3s ease;overflow-y:auto;padding:20px;}
   .tags-drawer.open{transform:translateX(0);}
   .tags-drawer-overlay{position:fixed;inset:0;z-index:140;background:rgba(0,0,0,.6);display:none;}
   .tags-drawer-overlay.open{display:block;}
   .tags-drawer h3{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--pink-light);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
-  .tags-drawer h3 button{font-size:1.2rem;color:var(--muted);background:none;border:none;cursor:pointer;}
+  .tags-drawer h3 button{font-size:1.2rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px;}
   .tag-list{display:flex;flex-direction:column;gap:6px;}
   .tag-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all .2s;background:var(--bg3);}
   .tag-item:hover,.tag-item.active{border-color:var(--pink);background:rgba(255,45,120,.08);}
@@ -282,6 +293,12 @@
   .video-tags{display:flex;flex-wrap:wrap;gap:7px;padding:12px 16px;border-top:1px solid var(--border);}
   .video-tag-chip{padding:4px 12px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);font-size:.74rem;color:var(--muted);cursor:pointer;transition:all .2s;}
   .video-tag-chip:hover{border-color:var(--pink);color:var(--pink-light);}
+  /* Mobile: drawer slides up from bottom */
+  @media(max-width:700px){
+    .tags-drawer{width:100%;height:70vh;top:auto;right:0;left:0;bottom:0;border-left:none;border-top:1px solid var(--border);border-radius:16px 16px 0 0;transform:translateY(100%);}
+    .tags-drawer.open{transform:translateY(0);}
+    .tag-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  }
   .load-more-wrap{display:flex;justify-content:center;margin-top:20px;}
   .load-more-btn{padding:10px 32px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:.88rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px;}
   .load-more-btn:hover{border-color:var(--pink);color:var(--pink);}
@@ -289,6 +306,15 @@
   .load-more-btn .spin-sm{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:var(--pink);animation:spin .6s linear infinite;display:none;}
   .load-more-btn.loading .spin-sm{display:block;}
   .load-more-btn.loading .btn-txt{display:none;}
+  /* READ MORE */
+  .video-description{font-size:.84rem;line-height:1.7;color:rgba(240,232,240,.75);margin-bottom:6px;max-height:64px;overflow:hidden;position:relative;transition:max-height .35s ease;}
+  .video-description.expanded{max-height:800px;}
+  .video-description:not(.expanded)::after{content:'';position:absolute;bottom:0;left:0;right:0;height:28px;background:linear-gradient(transparent,var(--bg2));pointer-events:none;}
+  .read-more-btn{background:none;border:none;color:var(--pink-light);font-size:.78rem;cursor:pointer;padding:2px 0 12px;display:block;text-align:left;}
+  .read-more-btn:hover{text-decoration:underline;}
+  /* Homepage sections */
+  .homepage-only{transition:opacity .2s;}
+  .homepage-only.hidden{display:none;}
   .seo-footer{padding:40px 20px;max-width:1000px;margin:0 auto;color:var(--muted);font-size:.82rem;line-height:1.8;border-top:1px solid var(--border);}
   .seo-footer h2{font-size:1rem;color:var(--text);margin-bottom:10px;}
   .seo-footer p{margin-bottom:12px;}
@@ -324,7 +350,17 @@
 </div>
 
 <main>
-  <div class="section-title" id="sectionTitle">LATEST VIDEOS</div>
+  <!-- Hot Videos — rotates every visit -->
+  <div class="homepage-only" id="homepageSections">
+    <div class="section-title" id="hotTitle">🔥 HOT VIDEOS RIGHT NOW</div>
+    <div class="grid" id="hotGrid"></div>
+    <div class="section-title" style="margin-top:32px">🆕 RECENTLY UPLOADED</div>
+    <div class="grid" id="recentGrid"></div>
+    <div class="section-title" style="margin-top:32px" id="sectionTitle">ALL VIDEOS</div>
+  </div>
+  <div id="searchSectionTitle" style="display:none">
+    <div class="section-title" id="sectionTitleSearch">SEARCH RESULTS</div>
+  </div>
   <div class="search-desc" id="searchDesc"></div>
   <div class="grid" id="grid"></div>
   <div class="pagination" id="pagination"></div>
@@ -395,6 +431,7 @@
       <div class="video-info-title" id="videoInfoTitle"></div>
       <div class="video-info-meta" id="videoInfoMeta"></div>
       <div class="video-description" id="videoDescription"></div>
+      <button class="read-more-btn" id="readMoreBtn" onclick="toggleReadMore()" style="display:none">Read More ▼</button>
       <div class="video-actions">
         <button class="btn-share" onclick="shareVideo()">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>Share
@@ -561,9 +598,11 @@ async function loadVideos(page=1,q=""){
   if(q){
     sectionTitle.textContent=`"${q.toUpperCase()}" VIDEOS`;
     updateSearchSEO(q);
+    showHomepageSections(false);
   } else {
-    sectionTitle.textContent="LATEST VIDEOS";
+    sectionTitle.textContent="ALL VIDEOS";
     resetSEO();
+    showHomepageSections(true);
   }
 
   if(!data.videos.length){
@@ -666,6 +705,7 @@ async function openModal(id){
   videoInfoTitle.textContent=data.title;
   videoInfoMeta.innerHTML=`<span>👁 ${data.views||"—"}</span><span class="pink">👍 ${data.rating||"—"}</span><span>⏱ ${data.duration||"—"}</span>`;
   videoDescription.textContent=data.description||"";
+  setupReadMore(data.description||"");
   if(data.slug)watchLink.href=`/watch/${data.slug}`;
   videoInfo.style.display="block";
   showVideoTags(data.tags||[]);
@@ -929,7 +969,74 @@ async function openModalBySlug(slug){
   try{const res=await fetch(`${API}/videos/slug/${slug}`);if(!res.ok)return;const data=await res.json();await openModal(data.id);}catch(e){}
 }
 
-// ── TAGS ──────────────────────────────────────────────────────
+// ── HOMEPAGE SECTIONS ─────────────────────────────────────────
+async function loadHomepageSections(){
+  try {
+    const [hotRes, recentRes] = await Promise.all([
+      fetch(`${API}/videos/hot?limit=12`),
+      fetch(`${API}/videos/recent?limit=12`)
+    ]);
+    const hot    = await hotRes.json();
+    const recent = await recentRes.json();
+    renderMiniGrid("hotGrid",    hot);
+    renderMiniGrid("recentGrid", recent);
+  } catch(e){ console.warn("Homepage sections error",e); }
+}
+
+function renderMiniGrid(containerId, videos){
+  const el = document.getElementById(containerId);
+  if(!el || !videos.length) return;
+  el.innerHTML = videos.map(v=>`
+    <div class="card" data-id="${v.id}" data-slug="${v.slug||''}">
+      <div class="card-thumb">
+        <img src="${v.thumbnail||''}" alt="${v.title}" loading="lazy"
+             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 9%22%3E%3Crect fill=%22%2318181f%22 width=%2216%22 height=%229%22/%3E%3C/svg%3E'"/>
+        <div class="card-duration">${v.duration||""}</div>
+        <div class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+      </div>
+      <div class="card-info">
+        <div class="card-title">${v.title}</div>
+        <div class="card-meta"><span>👁 ${v.views||"—"}</span><span class="rating">👍 ${v.rating||"—"}</span></div>
+      </div>
+    </div>`).join("");
+  el.querySelectorAll(".card").forEach(card=>{
+    card.addEventListener("click",()=>{
+      const slug=card.dataset.slug;
+      if(slug)window.history.pushState({},``,`/watch/${slug}`);
+      openModal(Number(card.dataset.id));
+    });
+  });
+}
+
+function showHomepageSections(show){
+  const el=document.getElementById("homepageSections");
+  const st=document.getElementById("searchSectionTitle");
+  if(el) el.classList.toggle("hidden", !show);
+  if(st) st.style.display=show?"none":"block";
+}
+
+// ── READ MORE ─────────────────────────────────────────────────
+function toggleReadMore(){
+  const desc=document.getElementById("videoDescription");
+  const btn =document.getElementById("readMoreBtn");
+  const expanded=desc.classList.toggle("expanded");
+  btn.textContent=expanded?"Read Less ▲":"Read More ▼";
+}
+
+function setupReadMore(text){
+  const desc=document.getElementById("videoDescription");
+  const btn =document.getElementById("readMoreBtn");
+  desc.textContent=text||"";
+  desc.classList.remove("expanded");
+  // Only show button if text is long enough to need truncation
+  if(text && text.length > 120){
+    btn.style.display="block";
+    btn.textContent="Read More ▼";
+  } else {
+    btn.style.display="none";
+    desc.classList.add("expanded"); // show all if short
+  }
+}
 let allTags=[], activeTagSlug=null;
 const videoTagsEl=document.getElementById("videoTags");
 
@@ -1022,6 +1129,7 @@ function showVideoTags(tags){
 
 // Load tags on init
 loadTags();
+loadHomepageSections();
 
 (async function init(){
   // If redirected from SSR page, restore the original URL path

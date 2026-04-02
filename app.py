@@ -169,11 +169,31 @@ def log_event(video_id, event):
 
 SITE_DOMAIN = "https://fapitup.online"  # Change to your real domain
 
+# ═══════════════════════════════════════════════════════════════
+# SSR ROUTES — Server-side rendering for Google indexing
+# ═══════════════════════════════════════════════════════════════
+
+SITE_DOMAIN = "https://fapitup.online"
+
+BOT_AGENTS = re.compile(
+    r'bot|crawl|spider|google|bing|baidu|yandex|duckduck|facebook|twitter|linkedin|slack|telegram|whatsapp|preview|fetch|curl|wget|python|java|ruby',
+    re.IGNORECASE
+)
+
+def is_bot():
+    ua = request.headers.get("User-Agent", "")
+    return bool(BOT_AGENTS.search(ua))
+
+
 def ssr_shell(title, description, canonical, og_image="", extra_schema="", body_content=""):
-    og_image  = og_image or f"{SITE_DOMAIN}/assets/logo.png"
+    og_image   = og_image or f"{SITE_DOMAIN}/assets/logo.png"
     safe_title = title.replace('"', '&quot;').replace("'", "&#39;")
     safe_desc  = description[:160].replace('"', '&quot;').replace("'", "&#39;")
-    return f"""<!DOCTYPE html>
+
+    # For bots: pure static HTML, NO javascript redirect at all
+    # Google sees exactly what's in the HTML — canonical, title, content
+    if is_bot():
+        return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -194,42 +214,54 @@ def ssr_shell(title, description, canonical, og_image="", extra_schema="", body_
 <meta name="twitter:image" content="{og_image}"/>
 {extra_schema}
 <style>
-  /* Minimal styles — only shown to bots or if JS is disabled */
-  *{{box-sizing:border-box;margin:0;padding:0;}}
-  body{{background:#0a0a0f;color:#f0e8f0;font-family:sans-serif;}}
-  #ssr-content{{max-width:900px;margin:0 auto;padding:24px;display:none;}}
-  .ssr-thumb{{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;}}
-  .ssr-title{{font-size:1.3rem;font-weight:700;margin:14px 0 8px;line-height:1.4;}}
-  .ssr-desc{{font-size:.88rem;color:#aaa;line-height:1.7;margin-bottom:12px;}}
-  .ssr-meta{{font-size:.78rem;color:#666;margin-bottom:12px;}}
-  .ssr-tags{{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}}
-  .ssr-tag{{padding:3px 11px;border:1px solid #333;border-radius:20px;font-size:.73rem;color:#aaa;text-decoration:none;}}
-  .ssr-related{{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:20px;}}
-  .ssr-card{{text-decoration:none;color:#ccc;}}
-  .ssr-card img{{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;display:block;}}
-  .ssr-card p{{font-size:.74rem;margin:5px 0 0;line-height:1.35;}}
-  a{{color:#ff6fa8;}}
-  /* Show SSR content only for no-JS users */
-  noscript #ssr-content{{display:block;}}
+*{{box-sizing:border-box;margin:0;padding:0;}}
+body{{background:#0a0a0f;color:#f0e8f0;font-family:sans-serif;padding:20px;}}
+.wrap{{max-width:900px;margin:0 auto;}}
+img{{width:100%;border-radius:8px;aspect-ratio:16/9;object-fit:cover;display:block;}}
+h1{{font-size:1.3rem;margin:14px 0 8px;line-height:1.4;}}
+p{{font-size:.88rem;color:#aaa;line-height:1.7;margin-bottom:12px;}}
+.meta{{font-size:.78rem;color:#666;margin-bottom:12px;}}
+.tags{{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}}
+.tag{{padding:3px 11px;border:1px solid #333;border-radius:20px;font-size:.73rem;color:#aaa;text-decoration:none;}}
+.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:20px;}}
+.card{{text-decoration:none;color:#ccc;}}
+.card img{{aspect-ratio:16/9;border-radius:6px;}}
+.card p{{font-size:.74rem;margin:5px 0 0;}}
+a{{color:#ff6fa8;}}
+</style>
+</head>
+<body><div class="wrap">{body_content}</div></body>
+</html>"""
+
+    # For real users: store path, redirect to full SPA
+    # SPA reads sessionStorage and opens the right video/tag/search
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>{title}</title>
+<meta name="description" content="{safe_desc}"/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="{canonical}"/>
+<link rel="icon" type="image/png" href="/assets/logo.png"/>
+<meta property="og:type" content="video.other"/>
+<meta property="og:title" content="{safe_title}"/>
+<meta property="og:description" content="{safe_desc}"/>
+<meta property="og:image" content="{og_image}"/>
+<meta property="og:url" content="{canonical}"/>
+{extra_schema}
+<style>
+  body{{margin:0;background:#0a0a0f;display:flex;align-items:center;justify-content:center;height:100vh;}}
+  .loader{{width:40px;height:40px;border-radius:50%;border:3px solid rgba(255,45,120,.2);border-top-color:#ff2d78;animation:spin .7s linear infinite;}}
+  @keyframes spin{{to{{transform:rotate(360deg)}}}}
 </style>
 </head>
 <body>
-
-<!-- Google / bots see this content -->
-<noscript><div id="ssr-content">{body_content}</div></noscript>
-
-<!-- Hidden SSR content — also crawlable because it's in the HTML source -->
-<div id="ssr-content" aria-hidden="true" style="display:none">{body_content}</div>
-
+<div class="loader"></div>
 <script>
-// Real users: immediately load the full SPA from index.html
-// The browser replaces the page completely — CSS and all — works perfectly
-// Google/bots never run this (they index the HTML above)
-(function(){{
-  // Store current path so SPA knows what to open
-  sessionStorage.setItem('ssr_path', window.location.pathname);
-  window.location.replace('/?from_ssr=1');
-}})();
+sessionStorage.setItem('ssr_path', '{canonical.replace(SITE_DOMAIN, "")}');
+window.location.replace('/');
 </script>
 </body>
 </html>"""
@@ -248,7 +280,6 @@ def watch_page(slug):
         conn.close()
         return send_from_directory(".", "index.html")
 
-    # Convert to plain dict so .get() and [] both work safely
     row = dict(row)
 
     tags = conn.execute("""
@@ -259,36 +290,41 @@ def watch_page(slug):
     related = conn.execute("""
         SELECT v.title, v.thumbnail, v.slug FROM videos v
         JOIN video_tags vt ON vt.video_id=v.id
-        WHERE vt.tag_id IN (
-            SELECT tag_id FROM video_tags WHERE video_id=?
-        ) AND v.id != ? AND (v.archived IS NULL OR v.archived=0)
-        ORDER BY RANDOM() LIMIT 6
+        WHERE vt.tag_id IN (SELECT tag_id FROM video_tags WHERE video_id=?)
+        AND v.id != ? AND (v.archived IS NULL OR v.archived=0)
+        ORDER BY RANDOM() LIMIT 8
     """, (row["id"], row["id"])).fetchall()
     conn.close()
 
-    title       = f"{row['title']} — Watch Free | FapItUp"
-    description = (row.get("description") or f"Watch {row['title']} free online. Desi Indian MMS viral sex videos on FapItUp.")
+    raw_title   = row['title']
+    # SEO-optimised title: "Video Name – Watch Free Desi MMS | FapItUp"
+    page_title  = f"{raw_title} – Watch Free Desi MMS Video Online | FapItUp"
+    description = (row.get("description") or
+                   f"Watch {raw_title} free online. Desi Indian MMS viral sex video on FapItUp – new videos added daily.")
     canonical   = f"{SITE_DOMAIN}/watch/{slug}"
     og_image    = row.get("thumbnail") or f"{SITE_DOMAIN}/assets/logo.png"
     upload_date = (row.get("scraped_at") or "2026-01-01")[:10]
+    safe_title  = raw_title.replace('"','').replace("'",'')
+    safe_desc   = description[:200].replace('"','').replace("'",'')
 
-    # Safe versions for JSON schema (strip quotes)
-    safe_title = row['title'].replace('"','').replace("'",'')
-    safe_desc  = description[:200].replace('"','').replace("'",'')
-
-    tag_list_html = ""
+    # Tag links
+    tag_html = ""
     if tags:
-        tag_list_html = '<div class="ssr-tags">' + "".join(
-            f'<a class="ssr-tag" href="{SITE_DOMAIN}/tag/{t["slug"]}">{t["name"]}</a>'
+        tag_html = '<div class="tags">' + "".join(
+            f'<a class="tag" href="{SITE_DOMAIN}/tag/{t["slug"]}">{t["name"]}</a>'
             for t in tags
         ) + "</div>"
 
+    # Related grid with internal links
     related_html = ""
     if related:
-        related_html = '<h3 style="margin-top:28px;color:#ff6fa8;">More Videos</h3><div class="ssr-related">' + "".join(
-            f'<a class="ssr-card" href="{SITE_DOMAIN}/watch/{r["slug"]}"><img src="{r["thumbnail"] or ""}" alt="{r["title"]}" loading="lazy"/><p>{r["title"]}</p></a>'
+        cards = "".join(
+            f'<a class="card" href="{SITE_DOMAIN}/watch/{r["slug"]}">'
+            f'<img src="{r["thumbnail"] or ""}" alt="{r["title"]}" loading="lazy"/>'
+            f'<p>{r["title"]}</p></a>'
             for r in related
-        ) + "</div>"
+        )
+        related_html = f'<h2>More Videos Like This</h2><div class="grid">{cards}</div>'
 
     schema = f"""<script type="application/ld+json">{{
   "@context":"https://schema.org",
@@ -298,95 +334,135 @@ def watch_page(slug):
   "thumbnailUrl":"{og_image}",
   "uploadDate":"{upload_date}",
   "embedUrl":"{canonical}",
-  "publisher":{{"@type":"Organization","name":"FapItUp","url":"{SITE_DOMAIN}"}}
+  "publisher":{{"@type":"Organization","name":"FapItUp","url":"{SITE_DOMAIN}","logo":{{"@type":"ImageObject","url":"{SITE_DOMAIN}/assets/logo.png"}}}}
 }}</script>"""
 
     body = f"""
-<img class="ssr-thumb" src="{og_image}" alt="{row['title']}" />
-<div class="ssr-title">{row['title']}</div>
-<div class="ssr-meta">👁 {row.get('views') or '—'} &nbsp;|&nbsp; 👍 {row.get('rating') or '—'} &nbsp;|&nbsp; ⏱ {row.get('duration') or '—'}</div>
-<div class="ssr-desc">{description}</div>
-{tag_list_html}
-{related_html}"""
+<img src="{og_image}" alt="{raw_title}" />
+<h1>{raw_title}</h1>
+<div class="meta">👁 {row.get('views') or '—'} &nbsp;|&nbsp; 👍 {row.get('rating') or '—'} &nbsp;|&nbsp; ⏱ {row.get('duration') or '—'}</div>
+<p>{description}</p>
+{tag_html}
+{related_html}
+<p style="margin-top:20px;font-size:.8rem;color:#555;">
+  <a href="{SITE_DOMAIN}">← Back to FapItUp – Free Desi MMS Videos</a>
+</p>"""
 
-    return ssr_shell(title, description, canonical, og_image, schema, body)
+    return ssr_shell(page_title, description, canonical, og_image, schema, body)
 
 
 @app.route("/search/<query>")
 def search_page(query):
     conn = get_db()
-    q = query.replace("-", " ")
+    q    = query.replace("-", " ")
     rows = conn.execute("""
         SELECT id, title, thumbnail, slug, duration FROM videos
         WHERE (archived IS NULL OR archived=0) AND (title LIKE ? OR description LIKE ?)
         ORDER BY id DESC LIMIT 12
     """, (f"%{q}%", f"%{q}%")).fetchall()
+    total = conn.execute(
+        "SELECT COUNT(*) FROM videos WHERE (archived IS NULL OR archived=0) AND (title LIKE ? OR description LIKE ?)",
+        (f"%{q}%", f"%{q}%")
+    ).fetchone()[0]
     conn.close()
 
-    title       = f"Watch {q.title()} Sex Videos Online Free | FapItUp"
-    description = f"Watch free {q} desi sex videos and MMS clips online. Hundreds of {q} Indian adult videos updated daily on FapItUp."
+    q_title     = q.title()
+    page_title  = f"Watch {q_title} Sex Videos Free Online – Desi {q_title} MMS | FapItUp"
+    description = f"Watch {total}+ free {q} desi sex videos and MMS clips online. Hot Indian {q} adult videos updated daily on FapItUp – India's top desi video site."
     canonical   = f"{SITE_DOMAIN}/search/{query}"
 
     cards = "".join(
-        f'<a class="ssr-card" href="{SITE_DOMAIN}/watch/{r["slug"]}"><img src="{r["thumbnail"]}" alt="{r["title"]}" loading="lazy"/><p>{r["title"]}</p></a>'
+        f'<a class="card" href="{SITE_DOMAIN}/watch/{r["slug"]}">'
+        f'<img src="{r["thumbnail"]}" alt="{r["title"]}" loading="lazy"/>'
+        f'<p>{r["title"]}</p></a>'
         for r in rows
-    ) if rows else "<p style='color:#666'>No videos found for this search.</p>"
-
-    body = f"""
-<h1 style="font-size:1.3rem;margin-bottom:20px;color:#ff6fa8">{q.title()} Videos</h1>
-<p style="color:#888;margin-bottom:20px">{description}</p>
-<div class="ssr-related">{cards}</div>"""
+    ) if rows else "<p>No videos found – <a href='/'>browse all videos</a></p>"
 
     schema = f"""<script type="application/ld+json">{{
   "@context":"https://schema.org",
   "@type":"SearchResultsPage",
-  "name":"{title}",
-  "url":"{canonical}"
-}}</script>"""
-
-    return ssr_shell(title, description, canonical, "", schema, body)
-
-
-@app.route("/tag/<tag_slug>")
-def tag_page(tag_slug):
-    conn = get_db()
-    tag = conn.execute("SELECT id, name, slug FROM tags WHERE slug=?", (tag_slug,)).fetchone()
-    if not tag:
-        conn.close()
-        return send_from_directory(".", "index.html")
-
-    rows = conn.execute("""
-        SELECT v.id, v.title, v.thumbnail, v.slug, v.duration
-        FROM videos v JOIN video_tags vt ON vt.video_id=v.id
-        WHERE vt.tag_id=? AND (v.archived IS NULL OR v.archived=0)
-        ORDER BY v.id DESC LIMIT 12
-    """, (tag["id"],)).fetchall()
-    conn.close()
-
-    name        = tag["name"]
-    title       = f"{name} Sex Videos — Free Desi {name} MMS Watch Online | FapItUp"
-    description = f"Watch the best free {name} desi sex videos and MMS clips online. Hundreds of hot {name} Indian adult videos on FapItUp, updated daily."
-    canonical   = f"{SITE_DOMAIN}/tag/{tag_slug}"
-
-    cards = "".join(
-        f'<a class="ssr-card" href="{SITE_DOMAIN}/watch/{r["slug"]}"><img src="{r["thumbnail"]}" alt="{r["title"]}" loading="lazy"/><p>{r["title"]}</p></a>'
-        for r in rows
-    )
-
-    schema = f"""<script type="application/ld+json">{{
-  "@context":"https://schema.org",
-  "@type":"CollectionPage",
-  "name":"{title}",
+  "name":"{page_title}",
   "description":"{description[:200]}",
   "url":"{canonical}"
 }}</script>"""
 
     body = f"""
-<h1 style="font-size:1.3rem;margin-bottom:8px;color:#ff6fa8">{name} Videos</h1>
-<p style="color:#888;margin-bottom:20px">{description}</p>
-<div class="ssr-related">{cards}</div>"""
+<h1>{q_title} Videos – Free Desi {q_title} MMS Online</h1>
+<p>{description}</p>
+<div class="grid">{cards}</div>
+<p style="margin-top:20px;font-size:.8rem;color:#555;">
+  <a href="{SITE_DOMAIN}">← Browse all desi MMS videos on FapItUp</a>
+</p>"""
 
-    return ssr_shell(title, description, canonical, "", schema, body)
+    return ssr_shell(page_title, description, canonical, "", schema, body)
+
+
+@app.route("/tag/<tag_slug>")
+def tag_page(tag_slug):
+    conn = get_db()
+    tag  = conn.execute("SELECT id, name, slug FROM tags WHERE slug=?", (tag_slug,)).fetchone()
+    if not tag:
+        conn.close()
+        return send_from_directory(".", "index.html")
+
+    rows  = conn.execute("""
+        SELECT v.id, v.title, v.thumbnail, v.slug, v.duration
+        FROM videos v JOIN video_tags vt ON vt.video_id=v.id
+        WHERE vt.tag_id=? AND (v.archived IS NULL OR v.archived=0)
+        ORDER BY v.id DESC LIMIT 12
+    """, (tag["id"],)).fetchall()
+    total = conn.execute("""
+        SELECT COUNT(*) FROM videos v JOIN video_tags vt ON vt.video_id=v.id
+        WHERE vt.tag_id=? AND (v.archived IS NULL OR v.archived=0)
+    """, (tag["id"],)).fetchone()[0]
+
+    # Related tags for internal linking
+    related_tags = conn.execute("""
+        SELECT DISTINCT t.name, t.slug FROM tags t
+        JOIN video_tags vt ON vt.tag_id=t.id
+        WHERE t.id != ? ORDER BY RANDOM() LIMIT 8
+    """, (tag["id"],)).fetchall()
+    conn.close()
+
+    name        = tag["name"]
+    page_title  = f"Desi {name} Sex Videos – Watch Free {name} MMS Online | FapItUp"
+    description = f"Watch {total}+ free {name} desi sex videos and MMS clips. Hot Indian {name} adult videos, leaked MMS and more – updated daily on FapItUp."
+    canonical   = f"{SITE_DOMAIN}/tag/{tag_slug}"
+
+    cards = "".join(
+        f'<a class="card" href="{SITE_DOMAIN}/watch/{r["slug"]}">'
+        f'<img src="{r["thumbnail"]}" alt="{r["title"]}" loading="lazy"/>'
+        f'<p>{r["title"]}</p></a>'
+        for r in rows
+    )
+
+    related_tag_html = ""
+    if related_tags:
+        links = " · ".join(
+            f'<a href="{SITE_DOMAIN}/tag/{t["slug"]}">{t["name"]}</a>'
+            for t in related_tags
+        )
+        related_tag_html = f'<p style="margin-top:16px;font-size:.82rem;color:#666;">Related: {links}</p>'
+
+    schema = f"""<script type="application/ld+json">{{
+  "@context":"https://schema.org",
+  "@type":"CollectionPage",
+  "name":"{page_title}",
+  "description":"{description[:200]}",
+  "url":"{canonical}",
+  "numberOfItems":{total}
+}}</script>"""
+
+    body = f"""
+<h1>Desi {name} Sex Videos – Free Online</h1>
+<p>{description}</p>
+<div class="grid">{cards}</div>
+{related_tag_html}
+<p style="margin-top:20px;font-size:.8rem;color:#555;">
+  <a href="{SITE_DOMAIN}">← Browse all desi MMS videos</a>
+</p>"""
+
+    return ssr_shell(page_title, description, canonical, "", schema, body)
 
 
 # ── Catch-all for everything else (SPA) ──────────────────────────────────────
@@ -481,6 +557,35 @@ def list_videos():
 
     conn.close()
     return jsonify({"videos":[dict(r) for r in rows], "total":total, "page":page, "pages":-(-total//limit)})
+
+
+# ── Homepage sections ─────────────────────────────────────────────────────────
+@app.route("/api/videos/hot")
+def hot_videos():
+    """Random videos from entire DB — rotates on every request."""
+    limit = min(24, int(request.args.get("limit", 12)))
+    conn  = get_db()
+    rows  = conn.execute("""
+        SELECT id,title,thumbnail,duration,views,rating,slug
+        FROM videos WHERE archived IS NULL OR archived=0
+        ORDER BY RANDOM() LIMIT ?
+    """, (limit,)).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/videos/recent")
+def recent_videos():
+    """Most recently added videos."""
+    limit = min(24, int(request.args.get("limit", 12)))
+    conn  = get_db()
+    rows  = conn.execute("""
+        SELECT id,title,thumbnail,duration,views,rating,slug,scraped_at
+        FROM videos WHERE archived IS NULL OR archived=0
+        ORDER BY id DESC LIMIT ?
+    """, (limit,)).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
 
 
 @app.route("/api/videos/<int:video_id>")
