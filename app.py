@@ -169,11 +169,31 @@ def log_event(video_id, event):
 
 SITE_DOMAIN = "https://fapitup.online"  # Change to your real domain
 
+# ═══════════════════════════════════════════════════════════════
+# SSR ROUTES — Server-side rendering for Google indexing
+# ═══════════════════════════════════════════════════════════════
+
+SITE_DOMAIN = "https://fapitup.online"
+
+BOT_AGENTS = re.compile(
+    r'bot|crawl|spider|google|bing|baidu|yandex|duckduck|facebook|twitter|linkedin|slack|telegram|whatsapp|preview|fetch|curl|wget|python|java|ruby',
+    re.IGNORECASE
+)
+
+def is_bot():
+    ua = request.headers.get("User-Agent", "")
+    return bool(BOT_AGENTS.search(ua))
+
+
 def ssr_shell(title, description, canonical, og_image="", extra_schema="", body_content=""):
-    og_image  = og_image or f"{SITE_DOMAIN}/assets/logo.png"
+    og_image   = og_image or f"{SITE_DOMAIN}/assets/logo.png"
     safe_title = title.replace('"', '&quot;').replace("'", "&#39;")
     safe_desc  = description[:160].replace('"', '&quot;').replace("'", "&#39;")
-    return f"""<!DOCTYPE html>
+
+    # For bots: pure static HTML, NO javascript redirect at all
+    # Google sees exactly what's in the HTML — canonical, title, content
+    if is_bot():
+        return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -194,42 +214,54 @@ def ssr_shell(title, description, canonical, og_image="", extra_schema="", body_
 <meta name="twitter:image" content="{og_image}"/>
 {extra_schema}
 <style>
-  /* Minimal styles — only shown to bots or if JS is disabled */
-  *{{box-sizing:border-box;margin:0;padding:0;}}
-  body{{background:#0a0a0f;color:#f0e8f0;font-family:sans-serif;}}
-  #ssr-content{{max-width:900px;margin:0 auto;padding:24px;display:none;}}
-  .ssr-thumb{{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;}}
-  .ssr-title{{font-size:1.3rem;font-weight:700;margin:14px 0 8px;line-height:1.4;}}
-  .ssr-desc{{font-size:.88rem;color:#aaa;line-height:1.7;margin-bottom:12px;}}
-  .ssr-meta{{font-size:.78rem;color:#666;margin-bottom:12px;}}
-  .ssr-tags{{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}}
-  .ssr-tag{{padding:3px 11px;border:1px solid #333;border-radius:20px;font-size:.73rem;color:#aaa;text-decoration:none;}}
-  .ssr-related{{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:20px;}}
-  .ssr-card{{text-decoration:none;color:#ccc;}}
-  .ssr-card img{{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;display:block;}}
-  .ssr-card p{{font-size:.74rem;margin:5px 0 0;line-height:1.35;}}
-  a{{color:#ff6fa8;}}
-  /* Show SSR content only for no-JS users */
-  noscript #ssr-content{{display:block;}}
+*{{box-sizing:border-box;margin:0;padding:0;}}
+body{{background:#0a0a0f;color:#f0e8f0;font-family:sans-serif;padding:20px;}}
+.wrap{{max-width:900px;margin:0 auto;}}
+img{{width:100%;border-radius:8px;aspect-ratio:16/9;object-fit:cover;display:block;}}
+h1{{font-size:1.3rem;margin:14px 0 8px;line-height:1.4;}}
+p{{font-size:.88rem;color:#aaa;line-height:1.7;margin-bottom:12px;}}
+.meta{{font-size:.78rem;color:#666;margin-bottom:12px;}}
+.tags{{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}}
+.tag{{padding:3px 11px;border:1px solid #333;border-radius:20px;font-size:.73rem;color:#aaa;text-decoration:none;}}
+.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:20px;}}
+.card{{text-decoration:none;color:#ccc;}}
+.card img{{aspect-ratio:16/9;border-radius:6px;}}
+.card p{{font-size:.74rem;margin:5px 0 0;}}
+a{{color:#ff6fa8;}}
+</style>
+</head>
+<body><div class="wrap">{body_content}</div></body>
+</html>"""
+
+    # For real users: store path, redirect to full SPA
+    # SPA reads sessionStorage and opens the right video/tag/search
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>{title}</title>
+<meta name="description" content="{safe_desc}"/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="{canonical}"/>
+<link rel="icon" type="image/png" href="/assets/logo.png"/>
+<meta property="og:type" content="video.other"/>
+<meta property="og:title" content="{safe_title}"/>
+<meta property="og:description" content="{safe_desc}"/>
+<meta property="og:image" content="{og_image}"/>
+<meta property="og:url" content="{canonical}"/>
+{extra_schema}
+<style>
+  body{{margin:0;background:#0a0a0f;display:flex;align-items:center;justify-content:center;height:100vh;}}
+  .loader{{width:40px;height:40px;border-radius:50%;border:3px solid rgba(255,45,120,.2);border-top-color:#ff2d78;animation:spin .7s linear infinite;}}
+  @keyframes spin{{to{{transform:rotate(360deg)}}}}
 </style>
 </head>
 <body>
-
-<!-- Google / bots see this content -->
-<noscript><div id="ssr-content">{body_content}</div></noscript>
-
-<!-- Hidden SSR content — also crawlable because it's in the HTML source -->
-<div id="ssr-content" aria-hidden="true" style="display:none">{body_content}</div>
-
+<div class="loader"></div>
 <script>
-// Real users: immediately load the full SPA from index.html
-// The browser replaces the page completely — CSS and all — works perfectly
-// Google/bots never run this (they index the HTML above)
-(function(){{
-  // Store current path so SPA knows what to open
-  sessionStorage.setItem('ssr_path', window.location.pathname);
-  window.location.replace('/?from_ssr=1');
-}})();
+sessionStorage.setItem('ssr_path', '{canonical.replace(SITE_DOMAIN, "")}');
+window.location.replace('/');
 </script>
 </body>
 </html>"""
