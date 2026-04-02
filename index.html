@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 
 <!-- ═══ SEO META ═══ -->
-<title id="pageTitle">Desi Xvideos MMS Viral Leaked Sex Videos Watch Online Free — Latest Indian Adult MMS</title>
-<meta name="description" id="pageDesc" content="Watch the latest desi Indian viral MMS leaked sex videos online free. Hindi bhabhi chudai, GF BF sex, nepali, Tamil, Telugu, Bengali adult videos. New videos daily."/>
+<title id="pageTitle">Desi MMS Videos – Indian Sex Clips Like XVideos XHamster Latest | FapItUp</title>
+<meta name="description" id="pageDesc" content="FapItUp – India's hottest desi MMS site. Watch viral leaked sex videos, bhabhi chudai, GF BF clips, hidden cam MMS – like xhamster xvideos, pornhub, desitales or VIRALKAND but only Indian. Free, daily updates."/>
 <meta name="keywords" content="desi mms, indian sex video, hindi mms, viral mms leak, bhabhi sex, desi chudai, indian porn, xhamster india, xvideos desi, xnxx indian, desi bf video, girlfriend sex mms, leaked mms, viral sex video, nepali sex video, bengali sex mms, tamil sex video, telugu sex video, hot bhabhi, desi adult, free indian porn, hindi sex video"/>
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1"/>
 <meta name="theme-color" content="#ff2d78"/>
@@ -17,13 +17,14 @@
 <!-- Favicon — served via Flask so it works -->
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/logo.png"/>
+<link rel="shortcut icon" href="/favicon.ico"/>
 <link rel="apple-touch-icon" href="/assets/logo.png"/>
 
 <!-- Open Graph -->
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="FapItUp"/>
-<meta property="og:title" id="ogTitle" content="Desi MMS Viral Leaked Sex Videos Watch Online Free"/>
-<meta property="og:description" id="ogDesc" content="Watch the latest desi Indian viral MMS leaked sex videos free. New videos daily."/>
+<meta property="og:title" id="ogTitle" content="Desi MMS Videos – Indian Sex Clips Like XVideos XHamster | FapItUp"/>
+<meta property="og:description" id="ogDesc" content="India's hottest desi MMS site. Viral leaked sex videos, bhabhi chudai, GF BF clips – free daily updates."/>
 <meta property="og:url" content="https://fapitup.com/"/>
 <meta property="og:image" content="https://fapitup.com/favicon"/>
 <meta property="og:locale" content="en_IN"/>
@@ -567,8 +568,8 @@ function updateSearchSEO(q){
 }
 
 function resetSEO(){
-  document.getElementById("pageTitle").textContent="Desi MMS Viral Leaked Sex Videos Watch Online Free — Latest Indian Adult MMS";
-  document.getElementById("pageDesc").content="Watch the latest desi Indian viral MMS leaked sex videos online free.";
+  document.getElementById("pageTitle").textContent="Desi MMS Videos – Indian Sex Clips Like XVideos XHamster | FapItUp";
+  document.getElementById("pageDesc").content="FapItUp – India's hottest desi MMS site. Viral leaked sex videos, bhabhi chudai, GF BF clips – free daily updates.";
   searchDesc.classList.remove("show");
 }
 
@@ -579,10 +580,12 @@ function doSearch(q){
 }
 
 function goHome(){
-  searchInput.value=""; searchQuery="";
+  searchInput.value=""; searchQuery=""; activeTagSlug=null;
   loadVideos(1,"");
+  showHomepageSections(true);
   resetSEO();
   window.history.pushState({},"","/");
+  window.scrollTo({top:0, behavior:"smooth"});
 }
 
 // ── GRID ──────────────────────────────────────────────────────
@@ -1073,10 +1076,22 @@ async function selectTag(slug, name){
   renderTagDrawer();
   closeTagsDrawer();
   searchInput.value=""; searchQuery="";
-  sectionTitle.textContent=`${name.toUpperCase()} VIDEOS`;
+
+  // Update URL to tag slug
   window.history.pushState({},"",`/tag/${encodeURIComponent(slug)}`);
+
+  // Update page title for SEO
+  document.title=`Desi ${name} Sex Videos – Watch Free | FapItUp`;
+
+  // Show tag results in the main grid area
+  sectionTitle.textContent=`${name.toUpperCase()} VIDEOS`;
+  showHomepageSections(false);
   grid.innerHTML=skeletonCards(PER_PAGE);
   pagination.innerHTML="";
+
+  // Smooth scroll to grid
+  document.getElementById("grid").scrollIntoView({behavior:"smooth", block:"start"});
+
   await loadTagVideos(slug, 1);
 }
 
@@ -1159,5 +1174,3 @@ loadHomepageSections();
 </script>
 </body>
 </html>
-
-

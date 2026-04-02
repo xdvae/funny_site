@@ -185,7 +185,7 @@ def is_bot():
     return bool(BOT_AGENTS.search(ua))
 
 
-def ssr_shell(title, description, canonical, og_image="", extra_schema="", body_content=""):
+def ssr_shell(title, description, canonical, og_image="", extra_schema="", body_content="", robots_meta="index, follow"):
     og_image   = og_image or f"{SITE_DOMAIN}/assets/logo.png"
     safe_title = title.replace('"', '&quot;').replace("'", "&#39;")
     safe_desc  = description[:160].replace('"', '&quot;').replace("'", "&#39;")
@@ -200,9 +200,10 @@ def ssr_shell(title, description, canonical, og_image="", extra_schema="", body_
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>{title}</title>
 <meta name="description" content="{safe_desc}"/>
-<meta name="robots" content="index, follow, max-image-preview:large"/>
+<meta name="robots" content="{robots_meta}"/>
 <link rel="canonical" href="{canonical}"/>
 <link rel="icon" type="image/png" href="/assets/logo.png"/>
+<link rel="shortcut icon" href="/favicon.ico"/>
 <meta property="og:type" content="video.other"/>
 <meta property="og:title" content="{safe_title}"/>
 <meta property="og:description" content="{safe_desc}"/>
@@ -354,7 +355,7 @@ def watch_page(slug):
 @app.route("/search/<query>")
 def search_page(query):
     conn = get_db()
-    q    = query.replace("-", " ")
+    q    = query.replace("-", " ").strip()
     rows = conn.execute("""
         SELECT id, title, thumbnail, slug, duration FROM videos
         WHERE (archived IS NULL OR archived=0) AND (title LIKE ? OR description LIKE ?)
@@ -366,24 +367,33 @@ def search_page(query):
     ).fetchone()[0]
     conn.close()
 
+    # ── Soft 404 fix: if fewer than 3 results, don't index this page ──────────
+    # Return 404 for zero results (Google stops indexing it)
+    if total == 0:
+        return send_from_directory(".", "index.html"), 404
+
     q_title     = q.title()
     page_title  = f"Watch {q_title} Sex Videos Free Online – Desi {q_title} MMS | FapItUp"
-    description = f"Watch {total}+ free {q} desi sex videos and MMS clips online. Hot Indian {q} adult videos updated daily on FapItUp – India's top desi video site."
+    description = f"Watch {total}+ free {q} desi sex videos and leaked MMS clips. Hot Indian {q} adult content updated daily on FapItUp."
     canonical   = f"{SITE_DOMAIN}/search/{query}"
+
+    # noindex thin pages (3-9 results) — still serve them but tell Google not to index
+    robots_meta = "index, follow" if total >= 10 else "noindex, follow"
 
     cards = "".join(
         f'<a class="card" href="{SITE_DOMAIN}/watch/{r["slug"]}">'
         f'<img src="{r["thumbnail"]}" alt="{r["title"]}" loading="lazy"/>'
         f'<p>{r["title"]}</p></a>'
         for r in rows
-    ) if rows else "<p>No videos found – <a href='/'>browse all videos</a></p>"
+    )
 
     schema = f"""<script type="application/ld+json">{{
   "@context":"https://schema.org",
   "@type":"SearchResultsPage",
   "name":"{page_title}",
   "description":"{description[:200]}",
-  "url":"{canonical}"
+  "url":"{canonical}",
+  "numberOfItems":{total}
 }}</script>"""
 
     body = f"""
@@ -394,7 +404,8 @@ def search_page(query):
   <a href="{SITE_DOMAIN}">← Browse all desi MMS videos on FapItUp</a>
 </p>"""
 
-    return ssr_shell(page_title, description, canonical, "", schema, body)
+    return ssr_shell(page_title, description, canonical, "", schema, body,
+                     robots_meta=robots_meta)
 
 
 @app.route("/tag/<tag_slug>")
@@ -480,11 +491,33 @@ def index(path):
 def favicon():
     return send_from_directory("assets", "logo.png", mimetype="image/png")
 
-# Also serve at /assets/logo.png so Google can crawl it directly
+# /favicon.ico — Google specifically looks for this exact path
+# @app.route("/favicon.ico")
+# def favicon_ico():
+#     # Serve the PNG as favicon.ico — browsers and Google accept PNG favicons
+#     return send_from_directory("assets", "logo.png", mimetype="image/png",
+#                                 headers={"Cache-Control": "public, max-age=86400"})
+
+# # /assets/* — publicly accessible for Google to crawl logo etc
+# @app.route("/assets/<path:filename>")
+# def assets(filename):
+#     return send_from_directory("assets", filename,
+#                                 headers={"Cache-Control": "public, max-age=86400"})
+
+from flask import send_from_directory
+
+@app.route("/favicon.ico")
+def favicon_ico():
+    response = send_from_directory("assets", "logo.png", mimetype="image/png")
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
 @app.route("/assets/<path:filename>")
 def assets(filename):
-    return send_from_directory("assets", filename)
-
+    response = send_from_directory("assets", filename)
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
 
 @app.route("/sitemap.xml")
 def sitemap():
@@ -509,12 +542,18 @@ def sitemap():
         for t in tags
     ]
 
-    # Key search pages
-    key_searches = ["bhabhi","nepali","hindi","girlfriend","chudai","viral","bengali","hotel","doggy","blowjob","desi","hidden","college","aunty","wife"]
-    search_urls = [
-        f"  <url><loc>{domain}/search/{q}</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>"
-        for q in key_searches
-    ]
+    # Key search pages — only include ones with enough real results
+    key_searches = ["bhabhi","nepali","hindi","girlfriend","chudai","viral","bengali","hotel","doggy","blowjob","desi","hidden","college","aunty","wife","massage","devar","missionary","riding"]
+    conn2 = get_db()
+    search_urls = []
+    for q in key_searches:
+        count = conn2.execute(
+            "SELECT COUNT(*) FROM videos WHERE (archived IS NULL OR archived=0) AND (title LIKE ? OR description LIKE ?)",
+            (f"%{q}%", f"%{q}%")
+        ).fetchone()[0]
+        if count >= 10:
+            search_urls.append(f"  <url><loc>{domain}/search/{q}</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>")
+    conn2.close()
 
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     xml += f'  <url><loc>{domain}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n'
