@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 
 <!-- ═══ SEO META ═══ -->
-<title id="pageTitle">Desi MMS Videos – Indian Sex Clips Like XVideos XHamster Latest | FapItUp</title>
-<meta name="description" id="pageDesc" content="FapItUp – India's hottest desi MMS site. Watch viral leaked sex videos, bhabhi chudai, GF BF clips, hidden cam MMS – like xhamster xvideos, pornhub, desitales or VIRALKAND but only Indian. Free, daily updates."/>
+<title id="pageTitle">Desi MMS Videos – Indian Sex Clips Like XVideos XHamster | FapItUp</title>
+<meta name="description" id="pageDesc" content="FapItUp – India's hottest desi MMS site. Watch viral leaked sex videos, bhabhi chudai, GF BF clips, hidden cam MMS – like xhamster and xvideos but only Indian. Free, daily updates."/>
 <meta name="keywords" content="desi mms, indian sex video, hindi mms, viral mms leak, bhabhi sex, desi chudai, indian porn, xhamster india, xvideos desi, xnxx indian, desi bf video, girlfriend sex mms, leaked mms, viral sex video, nepali sex video, bengali sex mms, tamil sex video, telugu sex video, hot bhabhi, desi adult, free indian porn, hindi sex video"/>
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1"/>
 <meta name="theme-color" content="#ff2d78"/>
@@ -24,16 +24,16 @@
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="FapItUp"/>
 <meta property="og:title" id="ogTitle" content="Desi MMS Videos – Indian Sex Clips Like XVideos XHamster | FapItUp"/>
-<meta property="og:description" id="ogDesc" content="India's hottest desi MMS site. Viral leaked sex videos, bhabhi chudai, GF BF clips – free daily updates."/>
-<meta property="og:url" content="https://fapitup.com/"/>
-<meta property="og:image" content="https://fapitup.com/favicon"/>
+<meta property="og:description" id="ogDesc" content="India's hottest desi MMS site. Viral leaked sex videos, bhabhi chudai, GF BF clips, hidden cam MMS – free daily updates."/>
+<meta property="og:url" content="https://fapitup.online/"/>
+<meta property="og:image" content="https://fapitup.online/assets/logo.png"/>
 <meta property="og:locale" content="en_IN"/>
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Desi MMS Viral Leaked Sex Videos | FapItUp"/>
 <meta name="twitter:description" content="Watch viral desi Indian MMS leaked sex videos free online."/>
-<meta name="twitter:image" content="https://fapitup.com/favicon"/>
+<meta name="twitter:image" content="https://fapitup.online/assets/logo.png"/>
 
 <!-- Schema.org WebSite -->
 <script type="application/ld+json">
@@ -42,12 +42,12 @@
   "@type":"WebSite",
   "name":"FapItUp",
   "alternateName":"FapItUp.com",
-  "url":"https://fapitup.com",
+  "url":"https://fapitup.online",
   "description":"Watch the latest desi Indian viral MMS leaked sex videos online free. New videos added daily.",
   "inLanguage":"en-IN",
   "potentialAction":{
     "@type":"SearchAction",
-    "target":{"@type":"EntryPoint","urlTemplate":"https://fapitup.com/search/{search_term_string}"},
+    "target":{"@type":"EntryPoint","urlTemplate":"https://fapitup.online/search/{search_term_string}"},
     "query-input":"required name=search_term_string"
   }
 }
@@ -352,16 +352,16 @@
 
 <main>
   <!-- Hot Videos — rotates every visit -->
+  <!-- Homepage sections — hot + recent — hidden during search/tag -->
   <div class="homepage-only" id="homepageSections">
-    <div class="section-title" id="hotTitle">🔥 HOT VIDEOS RIGHT NOW</div>
+    <div class="section-title">🔥 HOT VIDEOS RIGHT NOW</div>
     <div class="grid" id="hotGrid"></div>
     <div class="section-title" style="margin-top:32px">🆕 RECENTLY UPLOADED</div>
     <div class="grid" id="recentGrid"></div>
-    <div class="section-title" style="margin-top:32px" id="sectionTitle">ALL VIDEOS</div>
   </div>
-  <div id="searchSectionTitle" style="display:none">
-    <div class="section-title" id="sectionTitleSearch">SEARCH RESULTS</div>
-  </div>
+
+  <!-- Section title always visible — changes based on context -->
+  <div class="section-title" id="sectionTitle" style="margin-top:32px">ALL VIDEOS</div>
   <div class="search-desc" id="searchDesc"></div>
   <div class="grid" id="grid"></div>
   <div class="pagination" id="pagination"></div>
@@ -602,6 +602,8 @@ async function loadVideos(page=1,q=""){
     sectionTitle.textContent=`"${q.toUpperCase()}" VIDEOS`;
     updateSearchSEO(q);
     showHomepageSections(false);
+    // Scroll to results
+    sectionTitle.scrollIntoView({behavior:"smooth", block:"start"});
   } else {
     sectionTitle.textContent="ALL VIDEOS";
     resetSEO();
@@ -1088,6 +1090,8 @@ async function selectTag(slug, name){
   showHomepageSections(false);
   grid.innerHTML=skeletonCards(PER_PAGE);
   pagination.innerHTML="";
+  // Scroll to results section
+  sectionTitle.scrollIntoView({behavior:"smooth", block:"start"});
 
   // Smooth scroll to grid
   document.getElementById("grid").scrollIntoView({behavior:"smooth", block:"start"});

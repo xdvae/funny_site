@@ -107,20 +107,25 @@ def ensure_all():
         )
     """)
 
-    # Populate slugs
+    # Populate slugs — including any newly merged desitales2 videos
     rows = conn.execute("SELECT id, title, post_id FROM videos WHERE slug IS NULL OR slug = ''").fetchall()
     if rows:
         print(f"[*] Generating slugs for {len(rows)} videos...")
         used = set(r[0] for r in conn.execute("SELECT slug FROM videos WHERE slug IS NOT NULL AND slug != ''").fetchall())
         for row in rows:
-            base = slugify(row["title"]) or f"video-{row['post_id']}"
-            slug = base
+            title = row["title"] or ""
+            base  = slugify(title) or f"video-{row['post_id']}"
+            slug  = base
             if slug in used:
                 slug = f"{base}-{row['post_id']}"
             used.add(slug)
             conn.execute("UPDATE videos SET slug=? WHERE id=?", (slug, row["id"]))
         conn.commit()
         print("[*] Slugs done")
+
+    # Fix any videos with NULL/empty video_url (cleanup)
+    conn.execute("DELETE FROM videos WHERE video_url IS NULL OR TRIM(video_url) = ''")
+    conn.commit()
 
     conn.commit()
     conn.close()
@@ -476,14 +481,6 @@ def tag_page(tag_slug):
     return ssr_shell(page_title, description, canonical, "", schema, body)
 
 
-# ── Catch-all for everything else (SPA) ──────────────────────────────────────
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def index(path):
-    if path.startswith(("api/", "proxy", "sitemap", "robots", "alfa-gama-beta", "favicon", "assets/")):
-        from flask import abort; abort(404)
-    # Always serve index.html for SPA routes — including ?_spa=1 requests from SSR pages
-    return send_from_directory(".", "index.html")
 
 
 # ── Favicon — served directly from assets folder ──────────────────────────────
@@ -492,27 +489,15 @@ def favicon():
     return send_from_directory("assets", "logo.png", mimetype="image/png")
 
 # /favicon.ico — Google specifically looks for this exact path
-# @app.route("/favicon.ico")
-# def favicon_ico():
-#     # Serve the PNG as favicon.ico — browsers and Google accept PNG favicons
-#     return send_from_directory("assets", "logo.png", mimetype="image/png",
-#                                 headers={"Cache-Control": "public, max-age=86400"})
-
-# # /assets/* — publicly accessible for Google to crawl logo etc
-# @app.route("/assets/<path:filename>")
-# def assets(filename):
-#     return send_from_directory("assets", filename,
-#                                 headers={"Cache-Control": "public, max-age=86400"})
-
-from flask import send_from_directory
-
+# /favicon.ico — Google specifically looks for this exact path
 @app.route("/favicon.ico")
 def favicon_ico():
+    # Serve the PNG as favicon.ico — browsers and Google accept PNG favicons
     response = send_from_directory("assets", "logo.png", mimetype="image/png")
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
-
+# /assets/* — publicly accessible for Google to crawl logo etc
 @app.route("/assets/<path:filename>")
 def assets(filename):
     response = send_from_directory("assets", filename)
@@ -521,57 +506,103 @@ def assets(filename):
 
 @app.route("/sitemap.xml")
 def sitemap():
+    """Sitemap index pointing to sub-sitemaps for videos, tags, searches."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>{SITE_DOMAIN}/sitemap-videos.xml</loc><lastmod>{today}</lastmod></sitemap>
+  <sitemap><loc>{SITE_DOMAIN}/sitemap-tags.xml</loc><lastmod>{today}</lastmod></sitemap>
+  <sitemap><loc>{SITE_DOMAIN}/sitemap-pages.xml</loc><lastmod>{today}</lastmod></sitemap>
+</sitemapindex>"""
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/sitemap-videos.xml")
+def sitemap_videos():
+    """All video watch pages — one URL per video."""
     conn = get_db()
     videos = conn.execute(
-        "SELECT slug, scraped_at FROM videos WHERE slug IS NOT NULL AND (archived IS NULL OR archived=0) ORDER BY id DESC"
+        "SELECT slug, scraped_at FROM videos WHERE slug IS NOT NULL AND slug != '' AND (archived IS NULL OR archived=0) ORDER BY id DESC"
     ).fetchall()
-    tags = conn.execute("SELECT slug FROM tags").fetchall()
     conn.close()
-
-    domain = SITE_DOMAIN
-
-    # Video pages
-    video_urls = [
-        f"  <url><loc>{domain}/watch/{r['slug']}</loc><lastmod>{(r['scraped_at'] or '2026-01-01')[:10]}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>"
+    urls = "\n".join(
+        f'  <url><loc>{SITE_DOMAIN}/watch/{r["slug"]}</loc>'
+        f'<lastmod>{(r["scraped_at"] or "2026-01-01")[:10]}</lastmod>'
+        f'<changefreq>monthly</changefreq><priority>0.8</priority></url>'
         for r in videos
-    ]
+    )
+    xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}\n</urlset>'
+    return Response(xml, mimetype="application/xml")
 
-    # Tag pages
-    tag_urls = [
-        f"  <url><loc>{domain}/tag/{t['slug']}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>"
+
+@app.route("/sitemap-tags.xml")
+def sitemap_tags():
+    """All tag/category pages."""
+    conn = get_db()
+    tags = conn.execute("""
+        SELECT t.slug, COUNT(vt.video_id) as cnt
+        FROM tags t
+        LEFT JOIN video_tags vt ON vt.tag_id=t.id
+        LEFT JOIN videos v ON v.id=vt.video_id AND (v.archived IS NULL OR v.archived=0)
+        GROUP BY t.id HAVING cnt > 0 ORDER BY cnt DESC
+    """).fetchall()
+    conn.close()
+    today = datetime.now().strftime("%Y-%m-%d")
+    urls = "\n".join(
+        f'  <url><loc>{SITE_DOMAIN}/tag/{t["slug"]}</loc>'
+        f'<lastmod>{today}</lastmod>'
+        f'<changefreq>weekly</changefreq><priority>0.7</priority></url>'
         for t in tags
-    ]
+    )
+    xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}\n</urlset>'
+    return Response(xml, mimetype="application/xml")
 
-    # Key search pages — only include ones with enough real results
-    key_searches = ["bhabhi","nepali","hindi","girlfriend","chudai","viral","bengali","hotel","doggy","blowjob","desi","hidden","college","aunty","wife","massage","devar","missionary","riding"]
-    conn2 = get_db()
+
+@app.route("/sitemap-pages.xml")
+def sitemap_pages():
+    """Homepage + search pages with enough content."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    key_searches = [
+        "bhabhi","nepali","hindi","girlfriend","chudai","viral","bengali",
+        "hotel","doggy","blowjob","desi","hidden","college","aunty","wife",
+        "massage","devar","missionary","riding","mallu","punjabi","tamil",
+        "telugu","pakistani","amateur","homemade","hardcore","leaked","mms"
+    ]
+    conn = get_db()
     search_urls = []
     for q in key_searches:
-        count = conn2.execute(
+        count = conn.execute(
             "SELECT COUNT(*) FROM videos WHERE (archived IS NULL OR archived=0) AND (title LIKE ? OR description LIKE ?)",
             (f"%{q}%", f"%{q}%")
         ).fetchone()[0]
         if count >= 10:
-            search_urls.append(f"  <url><loc>{domain}/search/{q}</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>")
-    conn2.close()
+            search_urls.append(
+                f'  <url><loc>{SITE_DOMAIN}/search/{q}</loc>'
+                f'<lastmod>{today}</lastmod>'
+                f'<changefreq>weekly</changefreq><priority>0.6</priority></url>'
+            )
+    conn.close()
 
-    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    xml += f'  <url><loc>{domain}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n'
-    xml += "\n".join(video_urls + tag_urls + search_urls)
-    xml += "\n</urlset>"
+    homepage = f'  <url><loc>{SITE_DOMAIN}/</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>'
+    urls = homepage + "\n" + "\n".join(search_urls)
+    xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}\n</urlset>'
     return Response(xml, mimetype="application/xml")
 
 
 @app.route("/robots.txt")
 def robots():
-    domain = request.host_url.rstrip("/")
-    # Block admin, block indexing of API
     txt = f"""User-agent: *
 Allow: /
+Allow: /watch/
+Allow: /tag/
+Allow: /search/
+Allow: /assets/
 Disallow: {ADMIN_PATH}
 Disallow: /api/
 Disallow: /proxy
-Sitemap: {domain}/sitemap.xml
+Disallow: /favicon
+
+Sitemap: {SITE_DOMAIN}/sitemap.xml
 """
     return Response(txt, mimetype="text/plain")
 
@@ -745,11 +776,18 @@ def videos_by_tag(tag_slug):
 def proxy_video():
     video_url = request.args.get("url")
     if not video_url: return "Missing url", 400
-    if "vk25cdn.viralkand.com" not in video_url: return "Forbidden", 403
 
-    headers = {"Referer":"https://viralkand.com/", "Range":request.headers.get("Range","bytes=0-")}
+    # Allow both CDN sources
+    allowed = ("vk25cdn.viralkand.com", "cdn.desitales2.com")
+    if not any(cdn in video_url for cdn in allowed):
+        return "Forbidden", 403
+
+    # Set correct referer per CDN
+    referer = "https://www.desitales2.com/" if "desitales2" in video_url else "https://viralkand.com/"
+
+    headers = {"Referer": referer, "Range": request.headers.get("Range", "bytes=0-")}
     upstream = cdn_session.get(video_url, headers=headers, stream=True, timeout=15)
-    if upstream.status_code in (403,503):
+    if upstream.status_code in (403, 503):
         warm_up_session()
         upstream = cdn_session.get(video_url, headers=headers, stream=True, timeout=15)
 
@@ -927,6 +965,18 @@ def restore_video(vid):
 def delete_video(vid):
     conn=get_db(); conn.execute("DELETE FROM videos WHERE id=?", (vid,)); conn.execute("DELETE FROM analytics WHERE video_id=?", (vid,)); conn.commit(); conn.close()
     return jsonify({"success":True})
+
+
+
+# ── Catch-all SPA — MUST BE LAST ROUTE ───────────────────────────────────────
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def index(path):
+    blocked = ("api/", "proxy", "sitemap", "robots", "favicon",
+               "assets/", "alfa-gama-beta", "watch/", "search/", "tag/")
+    if any(path.startswith(b) for b in blocked):
+        from flask import abort; abort(404)
+    return send_from_directory(".", "index.html")
 
 
 if __name__ == "__main__":
