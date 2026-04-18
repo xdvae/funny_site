@@ -512,12 +512,6 @@ def assets(filename):
     response = send_from_directory("assets", filename)
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
-# /assets/* — publicly accessible for Google to crawl logo etc
-@app.route("/assets/<path:filename>")
-def assets(filename):
-    return send_from_directory("assets", filename,
-                                headers={"Cache-Control": "public, max-age=86400"})
-
 
 @app.route("/sitemap.xml")
 def sitemap():
