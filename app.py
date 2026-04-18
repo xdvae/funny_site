@@ -499,17 +499,19 @@ def indexnow_verify(key_file):
         abort(404)
 
 # ── Favicon — served directly from assets folder ──────────────────────────────
-@app.route("/favicon")
-def favicon():
-    return send_from_directory("assets", "logo.png", mimetype="image/png")
-
-# /favicon.ico — Google specifically looks for this exact path
 @app.route("/favicon.ico")
 def favicon_ico():
     # Serve the PNG as favicon.ico — browsers and Google accept PNG favicons
-    return send_from_directory("assets", "logo.png", mimetype="image/png",
-                                headers={"Cache-Control": "public, max-age=86400"})
+    response = send_from_directory("assets", "logo.png", mimetype="image/png")
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
 
+# /assets/* — publicly accessible for Google to crawl logo etc
+@app.route("/assets/<path:filename>")
+def assets(filename):
+    response = send_from_directory("assets", filename)
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
 # /assets/* — publicly accessible for Google to crawl logo etc
 @app.route("/assets/<path:filename>")
 def assets(filename):
