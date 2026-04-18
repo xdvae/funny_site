@@ -482,6 +482,21 @@ def tag_page(tag_slug):
 
 
 
+# ── Keep-alive ping — lightweight, no response size issues ────────────────────
+@app.route("/ping")
+def ping():
+    return "ok", 200
+
+# ── IndexNow key verification ─────────────────────────────────────────────────
+# 1. Get a free key at https://www.bing.com/indexnow
+# 2. Replace YOUR_KEY_HERE below with your actual key (same key as in updater.py)
+INDEXNOW_KEY = "385e35d3340a413aa9007cfc62129747"
+
+@app.route(f"/<key_file>.txt")
+def indexnow_verify(key_file):
+    if INDEXNOW_KEY != "YOUR_KEY_HERE" and key_file == INDEXNOW_KEY:
+        return INDEXNOW_KEY, 200, {"Content-Type": "text/plain"}
+        abort(404)
 
 # ── Favicon — served directly from assets folder ──────────────────────────────
 @app.route("/favicon")
@@ -489,20 +504,18 @@ def favicon():
     return send_from_directory("assets", "logo.png", mimetype="image/png")
 
 # /favicon.ico — Google specifically looks for this exact path
-# /favicon.ico — Google specifically looks for this exact path
 @app.route("/favicon.ico")
 def favicon_ico():
     # Serve the PNG as favicon.ico — browsers and Google accept PNG favicons
-    response = send_from_directory("assets", "logo.png", mimetype="image/png")
-    response.headers["Cache-Control"] = "public, max-age=86400"
-    return response
+    return send_from_directory("assets", "logo.png", mimetype="image/png",
+                                headers={"Cache-Control": "public, max-age=86400"})
 
 # /assets/* — publicly accessible for Google to crawl logo etc
 @app.route("/assets/<path:filename>")
 def assets(filename):
-    response = send_from_directory("assets", filename)
-    response.headers["Cache-Control"] = "public, max-age=86400"
-    return response
+    return send_from_directory("assets", filename,
+                                headers={"Cache-Control": "public, max-age=86400"})
+
 
 @app.route("/sitemap.xml")
 def sitemap():
