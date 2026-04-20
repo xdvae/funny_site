@@ -122,7 +122,7 @@ header{
 }
 .search-wrap:focus-within{border-color:rgba(224,32,64,.5)}
 .search-wrap svg{color:var(--dim);flex-shrink:0;width:13px;height:13px}
-.search-wrap input{flex:1;color:var(--text);font-size:.84rem;padding:8px 0}
+.search-wrap input{flex:1;color:var(--text);font-size:16px;padding:8px 0} /* 16px prevents iOS auto-zoom */
 .search-wrap input::placeholder{color:var(--dim)}
 .tags-btn{
   padding:6px 12px;border-radius:6px;font-size:.78rem;
@@ -669,6 +669,11 @@ main{padding:20px 16px 80px;max-width:1600px;margin:0 auto}
 @media(max-width:700px){
   header{padding:0 11px;gap:8px;height:50px}
   .logo-img{height:22px}
+  /* Search takes available space, never shrinks below usable width */
+  .search-wrap{min-width:0;flex:1}
+  /* Hide "Categories" text on mobile, show icon only */
+  .tags-btn-text{display:none}
+  .tags-btn{padding:6px 10px;min-width:36px;justify-content:center}
   main{padding:14px 12px 56px}
   .grid{grid-template-columns:repeat(2,1fr);gap:8px}
   .modal-overlay.open{
@@ -688,6 +693,22 @@ main{padding:20px 16px 80px;max-width:1600px;margin:0 auto}
   }
   .tags-drawer.open{transform:translateY(0)}
   .tag-list{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+  /* Fix ALL inputs to 16px to prevent iOS auto-zoom on focus */
+  .search-wrap input,
+  .form-group input,
+  .form-group textarea,
+  .form-group select{font-size:16px}
+  /* Tags drawer height and pill sizing */
+  .tags-drawer{height:65vh}
+  .tag-item{padding:6px 8px}
+  .tag-name{font-size:.78rem}
+  .tag-count{font-size:.65rem;padding:1px 5px}
+  /* Card tweaks */
+  .card-title{font-size:.76rem}
+  .card-meta{font-size:.64rem}
+  /* Prevent horizontal scroll */
+  body{overflow-x:hidden}
+  main{overflow-x:hidden}
 }
 @media(max-width:400px){
   .grid{gap:6px}
@@ -708,7 +729,7 @@ main{padding:20px 16px 80px;max-width:1600px;margin:0 auto}
   </div>
   <button class="tags-btn" onclick="openTagsDrawer()">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-    Categories
+    <span class="tags-btn-text">Categories</span>
   </button>
 </header>
 

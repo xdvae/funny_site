@@ -178,7 +178,7 @@ SITE_DOMAIN = "https://fapitup.online"  # Change to your real domain
 # SSR ROUTES — Server-side rendering for Google indexing
 # ═══════════════════════════════════════════════════════════════
 
-SITE_DOMAIN = "https://fapitup.online"
+
 
 BOT_AGENTS = re.compile(
     r'bot|crawl|spider|google|bing|baidu|yandex|duckduck|facebook|twitter|linkedin|slack|telegram|whatsapp|preview|fetch|curl|wget|python|java|ruby',
@@ -278,7 +278,7 @@ def watch_page(slug):
     conn = get_db()
     row = conn.execute("""
         SELECT v.id, v.title, v.description, v.thumbnail, v.duration,
-               v.views, v.rating, v.slug, v.scraped_at
+               v.views, v.rating, v.slug, v.scraped_at, v.video_url, v.page_url
         FROM videos v WHERE v.slug=? AND (v.archived IS NULL OR v.archived=0)
     """, (slug,)).fetchone()
 
@@ -303,17 +303,31 @@ def watch_page(slug):
     conn.close()
 
     raw_title   = row['title']
-    # SEO-optimised title: "Video Name – Watch Free Desi MMS | FapItUp"
     page_title  = f"{raw_title} – Watch Free Desi MMS Video Online | FapItUp"
     description = (row.get("description") or
                    f"Watch {raw_title} free online. Desi Indian MMS viral sex video on FapItUp – new videos added daily.")
     canonical   = f"{SITE_DOMAIN}/watch/{slug}"
     og_image    = row.get("thumbnail") or f"{SITE_DOMAIN}/assets/logo.png"
+    # Use absolute thumbnail URL — desitales2 thumbnails are already absolute
+    if og_image and not og_image.startswith("http"):
+        og_image = f"{SITE_DOMAIN}{og_image}"
     upload_date = (row.get("scraped_at") or "2026-01-01")[:10]
-    safe_title  = raw_title.replace('"','').replace("'",'')
-    safe_desc   = description[:200].replace('"','').replace("'",'')
+    safe_title  = raw_title.replace('"','&quot;').replace("'","&#39;")
+    safe_desc   = description[:250].replace('"','&quot;').replace("'","&#39;")
+    # The actual video file URL — this is what Google indexes for video search
+    video_file_url = row.get("video_url") or ""
 
-    # Tag links
+    def to_iso_duration(d):
+        if not d: return "PT0S"
+        parts = d.strip().split(":")
+        try:
+            if len(parts) == 2: return f"PT{int(parts[0])}M{int(parts[1])}S"
+            elif len(parts) == 3: return f"PT{int(parts[0])}H{int(parts[1])}M{int(parts[2])}S"
+        except: pass
+        return "PT0S"
+
+    iso_duration = to_iso_duration(row.get("duration",""))
+
     tag_html = ""
     if tags:
         tag_html = '<div class="tags">' + "".join(
@@ -321,7 +335,6 @@ def watch_page(slug):
             for t in tags
         ) + "</div>"
 
-    # Related grid with internal links
     related_html = ""
     if related:
         cards = "".join(
@@ -332,26 +345,37 @@ def watch_page(slug):
         )
         related_html = f'<h2>More Videos Like This</h2><div class="grid">{cards}</div>'
 
+    # VideoObject schema — contentUrl = actual MP4 file, embedUrl = watch page
+    # Google requires contentUrl to be the direct video file for video indexing
     schema = f"""<script type="application/ld+json">{{
   "@context":"https://schema.org",
   "@type":"VideoObject",
   "name":"{safe_title}",
   "description":"{safe_desc}",
   "thumbnailUrl":"{og_image}",
-  "uploadDate":"{upload_date}",
+  "uploadDate":"{upload_date}T00:00:00Z",
+  "duration":"{iso_duration}",
+  "contentUrl":"{video_file_url}",
   "embedUrl":"{canonical}",
-  "publisher":{{"@type":"Organization","name":"FapItUp","url":"{SITE_DOMAIN}","logo":{{"@type":"ImageObject","url":"{SITE_DOMAIN}/assets/logo.png"}}}}
+  "url":"{canonical}",
+  "isFamilyFriendly":false,
+  "publisher":{{
+    "@type":"Organization",
+    "name":"FapItUp",
+    "url":"{SITE_DOMAIN}",
+    "logo":{{"@type":"ImageObject","url":"{SITE_DOMAIN}/assets/logo.png","width":200,"height":60}}
+  }}
 }}</script>"""
 
     body = f"""
-<img src="{og_image}" alt="{raw_title}" />
+<img src="{og_image}" alt="{raw_title}" style="max-width:100%;height:auto;display:block;" />
 <h1>{raw_title}</h1>
-<div class="meta">👁 {row.get('views') or '—'} &nbsp;|&nbsp; 👍 {row.get('rating') or '—'} &nbsp;|&nbsp; ⏱ {row.get('duration') or '—'}</div>
+<div class="meta">{row.get('views') or ''} views &nbsp;|&nbsp; {row.get('rating') or ''} &nbsp;|&nbsp; {row.get('duration') or ''}</div>
 <p>{description}</p>
 {tag_html}
 {related_html}
 <p style="margin-top:20px;font-size:.8rem;color:#555;">
-  <a href="{SITE_DOMAIN}">← Back to FapItUp – Free Desi MMS Videos</a>
+  <a href="{SITE_DOMAIN}">Back to FapItUp – Free Desi MMS Videos</a>
 </p>"""
 
     return ssr_shell(page_title, description, canonical, og_image, schema, body)
@@ -492,13 +516,19 @@ def ping():
 # 2. Replace YOUR_KEY_HERE below with your actual key (same key as in updater.py)
 INDEXNOW_KEY = "385e35d3340a413aa9007cfc62129747"
 
-@app.route(f"/<key_file>.txt")
+@app.route("/<key_file>.txt")
 def indexnow_verify(key_file):
-    if INDEXNOW_KEY != "YOUR_KEY_HERE" and key_file == INDEXNOW_KEY:
+    if key_file == INDEXNOW_KEY:
         return INDEXNOW_KEY, 200, {"Content-Type": "text/plain"}
-        abort(404)
+    from flask import abort
+    abort(404)
 
 # ── Favicon — served directly from assets folder ──────────────────────────────
+@app.route("/favicon")
+def favicon():
+    return send_from_directory("assets", "logo.png", mimetype="image/png")
+
+# /favicon.ico — Google specifically looks for this exact path
 @app.route("/favicon.ico")
 def favicon_ico():
     # Serve the PNG as favicon.ico — browsers and Google accept PNG favicons
@@ -512,6 +542,7 @@ def assets(filename):
     response = send_from_directory("assets", filename)
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
+
 
 @app.route("/sitemap.xml")
 def sitemap():
